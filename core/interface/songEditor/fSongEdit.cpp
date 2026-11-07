@@ -667,9 +667,14 @@ static void functEncoder(int16_t value)
                 const size_t colorIndex =
                   (patternNumber - 1) * kAllTracks +
                   SE->songPlayerData.selection.startTrack;
-                uint8_t& color = newFileManager.songBlockColors[colorIndex];
-                int nextColor = (static_cast<int>(color) + (value > 0 ? 1 : -1) + colorCount) % colorCount;
-                color = static_cast<uint8_t>(nextColor);
+                const uint8_t currentColor = newFileManager.songBlockColors[colorIndex];
+                const int nextColor =
+                  (static_cast<int>(currentColor) + (value > 0 ? 1 : -1) + colorCount) %
+                  colorCount;
+                newFileManager.setSongBlockColorForMatchingTracks(
+                  patternNumber,
+                  SE->songPlayerData.selection.startTrack,
+                  static_cast<uint8_t>(nextColor));
                 display.refreshControl(SE->songPlayerControl);
                 newFileManager.setProjectStructChanged();
             }

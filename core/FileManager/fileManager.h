@@ -307,6 +307,9 @@ class cFileManager
     uint8_t getSongPattern(uint8_t pos);
     std::optional<int> getPatternPosInSong(uint8_t patternToSearch);
     void setSongPos(uint8_t pos);
+    void setSongBlockColorForMatchingTracks(uint8_t sourcePatternIndex,
+                                             uint8_t trackIndex,
+                                             uint8_t color);
     bool switchNextPatternInSong();
     void copySongTracks(char* currentProjectPath,
                         uint8_t srcPatternIdx,

@@ -750,7 +750,7 @@ void cSongPlayer::fillBlocks()
                 else
                 {
                     uint8_t slotColor = controlData->songBlockColors
-                                          ? controlData->songBlockColors[textListPos + pattern]
+                                          ? controlData->songBlockColors[(textListPos + pattern) * kAllTracks + track]
                                           : 0;
                     API_COLOR(slotColor > 0 && slotColor <= (sizeof(songBlockPalette) / sizeof(songBlockPalette[0]))
                                 ? songBlockPalette[slotColor - 1]

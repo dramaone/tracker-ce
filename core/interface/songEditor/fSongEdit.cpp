@@ -475,15 +475,22 @@ static void functAddSlot()
     for (int i = SE->songLength; i > SE->selectedSongPosition; i--)
     {
         mtProject.song.playlist[i] = mtProject.song.playlist[i - 1];
-        newFileManager.songBlockColors[i] = newFileManager.songBlockColors[i - 1];
+        for (int track = 0; track < kAllTracks; ++track)
+        {
+            newFileManager.songBlockColors[i * kAllTracks + track] =
+              newFileManager.songBlockColors[(i - 1) * kAllTracks + track];
+        }
     }
 
     mtProject.song.playlist[SE->selectedSongPosition + 1] =
       (isShiftPressed && firstEmptyPatternFound)
         ? firstEmptyPatternIdx
         : mtProject.song.playlist[SE->selectedSongPosition];
-    newFileManager.songBlockColors[SE->selectedSongPosition + 1] =
-      newFileManager.songBlockColors[SE->selectedSongPosition];
+    for (int track = 0; track < kAllTracks; ++track)
+    {
+        newFileManager.songBlockColors[(SE->selectedSongPosition + 1) * kAllTracks + track] =
+          newFileManager.songBlockColors[SE->selectedSongPosition * kAllTracks + track];
+    }
 
     SE->songLength++;
 
@@ -525,9 +532,16 @@ static void functDeleteSlot()
     for (int i = SE->selectedSongPosition; i < SE->songLength; i++)
     {
         mtProject.song.playlist[i] = mtProject.song.playlist[i + 1];
-        newFileManager.songBlockColors[i] = newFileManager.songBlockColors[i + 1];
+        for (int track = 0; track < kAllTracks; ++track)
+        {
+            newFileManager.songBlockColors[i * kAllTracks + track] =
+              newFileManager.songBlockColors[(i + 1) * kAllTracks + track];
+        }
     }
-    newFileManager.songBlockColors[SE->songLength - 1] = 0;
+    for (int track = 0; track < kAllTracks; ++track)
+    {
+        newFileManager.songBlockColors[(SE->songLength - 1) * kAllTracks + track] = 0;
+    }
 
     SE->songLength--;
 
@@ -663,10 +677,15 @@ static void functEncoder(int16_t value)
     {
         case 0:
         {
-            if (SE->editMode && value != 0 && SE->songPlayerData.selection.startSongPosition < SE->songLength)
+            if (SE->editMode && value != 0 &&
+                SE->songPlayerData.selection.startSongPosition < SE->songLength &&
+                SE->songPlayerData.selection.startTrack < kAllTracks)
             {
                 constexpr int colorCount = 9;
-                uint8_t& color = newFileManager.songBlockColors[SE->songPlayerData.selection.startSongPosition];
+                const size_t colorIndex =
+                  SE->songPlayerData.selection.startSongPosition * kAllTracks +
+                  SE->songPlayerData.selection.startTrack;
+                uint8_t& color = newFileManager.songBlockColors[colorIndex];
                 int nextColor = (static_cast<int>(color) + (value > 0 ? 1 : -1) + colorCount) % colorCount;
                 color = static_cast<uint8_t>(nextColor);
                 display.refreshControl(SE->songPlayerControl);

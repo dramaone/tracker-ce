@@ -4,6 +4,7 @@
 #include "core/interfacePopups.h"
 
 #include "fileManager.h"
+#include <cstring>
 
 // uint8_t patternToLoad = 0;
 

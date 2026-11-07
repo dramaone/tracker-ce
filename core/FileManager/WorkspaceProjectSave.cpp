@@ -84,6 +84,15 @@ void WorkspaceProjectSave::update()
             {
                 newFileManager.saveProjectFileToWorkspace();
             }
+
+            if (fileTransfer.saveMemoryToFile(newFileManager.songBlockColors,
+                                             cWorkspaceSongColorsFilePath,
+                                             sizeof(newFileManager.songBlockColors)) != fileTransferEnd)
+            {
+                stopOperationWithError(fmSaveError);
+                break;
+            }
+
             nextStep = WorkspaceProjectSaveStep::finishStep;
             break;
         }

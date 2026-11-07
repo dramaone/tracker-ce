@@ -475,24 +475,13 @@ static void functAddSlot()
     for (int i = SE->songLength; i > SE->selectedSongPosition; i--)
     {
         mtProject.song.playlist[i] = mtProject.song.playlist[i - 1];
-        for (int track = 0; track < kAllTracks; ++track)
-        {
-            newFileManager.songBlockColors[i * kAllTracks + track] =
-              newFileManager.songBlockColors[(i - 1) * kAllTracks + track];
-        }
-    }
+}
 
     mtProject.song.playlist[SE->selectedSongPosition + 1] =
       (isShiftPressed && firstEmptyPatternFound)
         ? firstEmptyPatternIdx
         : mtProject.song.playlist[SE->selectedSongPosition];
-    for (int track = 0; track < kAllTracks; ++track)
-    {
-        newFileManager.songBlockColors[(SE->selectedSongPosition + 1) * kAllTracks + track] =
-          newFileManager.songBlockColors[SE->selectedSongPosition * kAllTracks + track];
-    }
-
-    SE->songLength++;
+SE->songLength++;
 
     SE->selectedPlace = 1;
     SE->activateLabelsBorder();
@@ -532,18 +521,8 @@ static void functDeleteSlot()
     for (int i = SE->selectedSongPosition; i < SE->songLength; i++)
     {
         mtProject.song.playlist[i] = mtProject.song.playlist[i + 1];
-        for (int track = 0; track < kAllTracks; ++track)
-        {
-            newFileManager.songBlockColors[i * kAllTracks + track] =
-              newFileManager.songBlockColors[(i + 1) * kAllTracks + track];
-        }
-    }
-    for (int track = 0; track < kAllTracks; ++track)
-    {
-        newFileManager.songBlockColors[(SE->songLength - 1) * kAllTracks + track] = 0;
-    }
-
-    SE->songLength--;
+}
+SE->songLength--;
 
     SE->selectedPlace = 1;
     SE->activateLabelsBorder();
@@ -682,8 +661,11 @@ static void functEncoder(int16_t value)
                 SE->songPlayerData.selection.startTrack < kAllTracks)
             {
                 constexpr int colorCount = 9;
+                const uint8_t patternNumber =
+                  SE->songPlayerData.songData[SE->songPlayerData.selection.startSongPosition];
+                if (patternNumber == 0 || patternNumber > SONG_MAX) break;
                 const size_t colorIndex =
-                  SE->songPlayerData.selection.startSongPosition * kAllTracks +
+                  (patternNumber - 1) * kAllTracks +
                   SE->songPlayerData.selection.startTrack;
                 uint8_t& color = newFileManager.songBlockColors[colorIndex];
                 int nextColor = (static_cast<int>(color) + (value > 0 ? 1 : -1) + colorCount) % colorCount;

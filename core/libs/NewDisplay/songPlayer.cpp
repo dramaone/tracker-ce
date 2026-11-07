@@ -13,6 +13,11 @@
 #define MAX_BLOCKS_VISIBLE   32
 #define MAX_PATTERNS_VISIBLE 12
 
+static constexpr uint32_t songBlockPalette[] = {
+  0x00BFA5, 0x7B61FF, 0x00A6ED, 0xE0A526,
+  0xE45B5B, 0x36A86B, 0x5278D8, 0xD45AA6
+};
+
 constexpr uint16_t blockWidth =
   ((TOTAL_BLOCKS_WIDTH - BLOCKS_MARGIN * 2) - ((kAllTracks - 1) * BLOCK_SPACING)) / kAllTracks;
 //--------------------------------------------------------------------------------
@@ -744,7 +749,12 @@ void cSongPlayer::fillBlocks()
                 }
                 else
                 {
-                    API_COLOR(colors[1]);
+                    uint8_t slotColor = controlData->songBlockColors
+                                          ? controlData->songBlockColors[textListPos + pattern]
+                                          : 0;
+                    API_COLOR(slotColor > 0 && slotColor <= (sizeof(songBlockPalette) / sizeof(songBlockPalette[0]))
+                                ? songBlockPalette[slotColor - 1]
+                                : colors[1]);
                 }
                 API_VERTEX2F((localX), (localY + 1));
                 API_VERTEX2F((localX + blockWidth - 1), (localY + BLOCK_HEIGHT - 1));

@@ -154,6 +154,8 @@ class Synth;
 class cFileManager
 {
   public:
+    // Per-song-position manual colours, stored separately to preserve project-file compatibility.
+    uint8_t songBlockColors[SONG_MAX] = {};
     void init(FileSystem* fileSystem, Synth* synth, bool stereoSampleMode);
     void update();
     void setCrcCalculator(CrcCalculator* crcCalculator);

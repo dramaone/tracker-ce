@@ -140,6 +140,16 @@ void WorkspaceProjectLoad::loadProjectFromWorkspaceInit()
     // jezeli np ladowany jest starsza wersja pliku i struktura jest modyfikwoana
     newFileManager.clearChangeFlags();
 
+    memset(newFileManager.songBlockColors, 0, sizeof(newFileManager.songBlockColors));
+    if (fileSystem->exists(cWorkspaceSongColorsFilePath) &&
+        fileSystem->getFileSize(cWorkspaceSongColorsFilePath) == sizeof(newFileManager.songBlockColors))
+    {
+        fileTransfer.loadFileToMemory(cWorkspaceSongColorsFilePath,
+                                      newFileManager.songBlockColors,
+                                      sizeof(newFileManager.songBlockColors),
+                                      fileWholeOnce);
+    }
+
     currentInstrument = 0;
     sampleLoadStep = 0;
 

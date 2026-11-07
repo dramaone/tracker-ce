@@ -346,6 +346,20 @@ void ProjectOpen::openProjectFinish()
 
     newFileManager.getPatternsMetadata()->copyPatternsMetadata(srcFilePath,
                                                                cWorkspacePatternsMetadataFilePath);
+    //------------ per-song-position colours
+    snprintf(srcFilePath,
+             pathSize,
+             cProjectSongColorsFileFormat,
+             newFileManager.getCurrentProjectPath(),
+             newFileManager.getCurrentProjectName());
+    if (fileSystem->exists(srcFilePath))
+    {
+        fileTransfer.copyFile(srcFilePath, cWorkspaceSongColorsFilePath);
+    }
+    else if (fileSystem->exists(cWorkspaceSongColorsFilePath))
+    {
+        fileSystem->remove(cWorkspaceSongColorsFilePath);
+    }
     //------------ synth patches
 
 #if FILEMANAGER_HANDLE_SYNTH == 1

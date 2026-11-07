@@ -182,6 +182,19 @@ void ProjectSave::copyProject()
     if (loadStatus != fileTransferEnd)
     {
         operationError();
+        return;
+    }
+
+    char destSongColorsPath[PATCH_SIZE];
+    snprintf(destSongColorsPath,
+             sizeof(destSongColorsPath),
+             cProjectSongColorsFileFormat,
+             newFileManager.getCurrentProjectPath(),
+             newFileManager.getCurrentProjectName());
+    if (fileSystem->exists(cWorkspaceSongColorsFilePath) &&
+        fileTransfer.copyFile(cWorkspaceSongColorsFilePath, destSongColorsPath) != fileTransferEnd)
+    {
+        operationError();
     }
 }
 

@@ -13,6 +13,8 @@
 #include "mtStructs.h"
 #include "util_math.h"
 
+#include <string.h>
+
 cSongEditor songEditor;
 
 static cSongEditor* SE = &songEditor;

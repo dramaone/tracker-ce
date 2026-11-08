@@ -65,57 +65,6 @@ bool cFileManager::switchNextPatternInSong()
 }
 
 
-void cFileManager::setSongBlockColorForMatchingTracks(uint8_t sourcePatternIndex,
-                                                       uint8_t trackIndex,
-                                                       uint8_t color)
-{
-    if (sourcePatternIndex == 0 || sourcePatternIndex > PATTERN_INDEX_MAX ||
-        trackIndex >= kAllTracks)
-    {
-        return;
-    }
-
-    const Sequencer::strPattern* sourcePattern =
-      loadWorkspacePatternToTempBuffer(sourcePatternIndex);
-    if (sourcePattern == nullptr)
-    {
-        return;
-    }
-
-    // Keep a copy because loading each candidate reuses fileManagerPatternBuffer.
-    const Sequencer::strPattern::strTrack sourceTrack = sourcePattern->track[trackIndex];
-    bool visited[PATTERN_INDEX_MAX + 1] = {};
-
-    for (int songPosition = 0; songPosition < SONG_MAX; songPosition++)
-    {
-        const uint8_t patternIndex = mtProject.song.playlist[songPosition];
-        if (patternIndex == PLAYLIST_EMPTY_SLOT)
-        {
-            break;
-        }
-        if (patternIndex == 0 || patternIndex > PATTERN_INDEX_MAX || visited[patternIndex])
-        {
-            continue;
-        }
-        visited[patternIndex] = true;
-
-        const Sequencer::strPattern* candidatePattern =
-          loadWorkspacePatternToTempBuffer(patternIndex);
-        if (candidatePattern == nullptr)
-        {
-            continue;
-        }
-
-        const Sequencer::strPattern::strTrack& candidateTrack =
-          candidatePattern->track[trackIndex];
-        if (candidateTrack.length == sourceTrack.length &&
-            memcmp(candidateTrack.step, sourceTrack.step, sizeof(sourceTrack.step)) == 0)
-        {
-            songBlockColors[(patternIndex - 1) * kAllTracks + trackIndex] = color;
-        }
-    }
-}
-
 void cFileManager::copySongTracks(char* currentProjectPath,
                                   uint8_t srcPatternIdx,
                                   uint8_t destPaternIdx,

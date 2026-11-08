@@ -17,6 +17,15 @@ cSongEditor songEditor;
 
 static cSongEditor* SE = &songEditor;
 
+static bool songBlockLabelEditing = false;
+static uint8_t songBlockLabelPattern = 0;
+static uint8_t songBlockLabelTrack = 0;
+
+static void beginSongBlockLabelEdit();
+static void finishSongBlockLabelEdit();
+static void saveSongBlockLabel();
+static void cancelSongBlockLabelEdit();
+
 static void functPlayPattern();
 static void functPlaySong();
 static void functIncPattern(uint8_t state);
@@ -65,9 +74,127 @@ static void refreshDeleting();
 void playSongFromSelectedPattern();
 void playSongFromSelectedPattern_stop();
 
+
+static void beginSongBlockLabelEdit()
+{
+    if (songBlockLabelEditing || SE->isBusy || !SE->editMode || SE->selectedPlace != 0)
+    {
+        return;
+    }
+
+    const song_selection_t& selection = SE->songPlayerData.selection;
+    if (selection.startSongPosition >= SE->songLength ||
+        selection.startTrack >= kAllTracks ||
+        selection.patternSelectionLength > 1 ||
+        selection.trackSelectionLength > 1)
+    {
+        return;
+    }
+
+    const uint8_t patternNumber = SE->songPlayerData.songData[selection.startSongPosition];
+    if (patternNumber == 0 || patternNumber > PATTERN_INDEX_MAX)
+    {
+        return;
+    }
+
+    songBlockLabelPattern = patternNumber;
+    songBlockLabelTrack = selection.startTrack;
+
+    char* currentLabel =
+      newFileManager.songBlockLabels[(patternNumber - 1) * kAllTracks + selection.startTrack];
+    SE->keyboardManager.fillName(currentLabel);
+    SE->keyboardManager.activateKeyboard(3);
+    songBlockLabelEditing = true;
+
+    // The two left soft keys become Save and Cancel while the keyboard is open.
+    SE->ip->clearButtonsRange(interfaceButton0, interfaceButton7);
+    SE->ip->setButtonObj(interfaceButton0, buttonPress, saveSongBlockLabel);
+    SE->ip->setButtonObj(interfaceButton1, buttonPress, cancelSongBlockLabelEdit);
+    SE->ip->setButtonObj(interfaceButtonInsert, buttonPress, functInsert);
+    SE->ip->setButtonObj(interfaceButtonDelete, buttonPress, functDelete);
+    SE->ip->setButtonObj(interfaceButtonLeft, buttonPress, functLeft);
+    SE->ip->setButtonObj(interfaceButtonRight, buttonPress, functRight);
+    SE->ip->setButtonObj(interfaceButtonUp, buttonPress, functUp);
+    SE->ip->setButtonObj(interfaceButtonDown, buttonPress, functDown);
+    SE->ip->setPotObj(interfacePot0, functEncoder, false);
+    SE->ip->setPadsGlobal(functPads);
+
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        display.setControlText(SE->label[i], "");
+        display.setControlText2(SE->label[i], "");
+    }
+    display.setControlText(SE->label[0], "Save");
+    display.setControlText2(SE->label[0], "Label");
+    display.setControlText(SE->label[1], "Cancel");
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        display.refreshControl(SE->label[i]);
+    }
+    display.synchronizeRefresh();
+}
+
+static void finishSongBlockLabelEdit()
+{
+    SE->keyboardManager.deactivateKeyboard();
+    songBlockLabelEditing = false;
+
+    SE->setDefaultScreenFunct();
+    SE->showDefaultScreen();
+    SE->activateLabelsBorder();
+    SE->refreshSongPlayerControl();
+}
+
+static void saveSongBlockLabel()
+{
+    if (!songBlockLabelEditing)
+    {
+        return;
+    }
+
+    char filteredLabel[4] = {};
+    uint8_t outputLength = 0;
+    uint8_t digitCount = 0;
+    const char* typedName = SE->keyboardManager.getName();
+
+    for (uint8_t i = 0; typedName[i] != 0 && outputLength < 3; i++)
+    {
+        char character = typedName[i];
+        if (character >= 'a' && character <= 'z')
+        {
+            character = character - 'a' + 'A';
+        }
+
+        if (character >= 'A' && character <= 'Z')
+        {
+            filteredLabel[outputLength++] = character;
+        }
+        else if (character >= '0' && character <= '9' && digitCount < 2)
+        {
+            filteredLabel[outputLength++] = character;
+            digitCount++;
+        }
+    }
+
+    char* destination =
+      newFileManager.songBlockLabels[(songBlockLabelPattern - 1) * kAllTracks + songBlockLabelTrack];
+    memcpy(destination, filteredLabel, sizeof(filteredLabel));
+    newFileManager.setProjectStructChanged();
+
+    finishSongBlockLabelEdit();
+}
+
+static void cancelSongBlockLabelEdit()
+{
+    if (songBlockLabelEditing)
+    {
+        finishSongBlockLabelEdit();
+    }
+}
+
 void cSongEditor::update()
 {
-    if (songPlayerRefreshTimer > 100)
+    if (!songBlockLabelEditing && songPlayerRefreshTimer > 100)
     {
         songPlayerRefreshTimer = 0;
         refreshButtonsLabels();
@@ -647,6 +774,17 @@ static void functTempo(uint8_t state)
 
 static void functEncoder(int16_t value)
 {
+    if (songBlockLabelEditing)
+    {
+        const char direction = value > 0 ? 'd' : 'a';
+        const int16_t steps = value > 0 ? value : -value;
+        for (int16_t step = 0; step < steps; step++)
+        {
+            SE->keyboardManager.makeMove(direction);
+        }
+        return;
+    }
+
     if (SE->isBusy)
     {
         return;
@@ -656,27 +794,9 @@ static void functEncoder(int16_t value)
     {
         case 0:
         {
-            if (SE->editMode && value != 0 &&
-                SE->songPlayerData.selection.startSongPosition < SE->songLength &&
-                SE->songPlayerData.selection.startTrack < kAllTracks)
+            if (SE->editMode && value != 0)
             {
-                constexpr int colorCount = 9;
-                const uint8_t patternNumber =
-                  SE->songPlayerData.songData[SE->songPlayerData.selection.startSongPosition];
-                if (patternNumber == 0 || patternNumber > SONG_MAX) break;
-                const size_t colorIndex =
-                  (patternNumber - 1) * kAllTracks +
-                  SE->songPlayerData.selection.startTrack;
-                const uint8_t currentColor = newFileManager.songBlockColors[colorIndex];
-                const int nextColor =
-                  (static_cast<int>(currentColor) + (value > 0 ? 1 : -1) + colorCount) %
-                  colorCount;
-                newFileManager.setSongBlockColorForMatchingTracks(
-                  patternNumber,
-                  SE->songPlayerData.selection.startTrack,
-                  static_cast<uint8_t>(nextColor));
-                display.refreshControl(SE->songPlayerControl);
-                newFileManager.setProjectStructChanged();
+                beginSongBlockLabelEdit();
             }
             break;
         }
@@ -722,6 +842,12 @@ static void functShift(uint8_t state)
 
 static void functUp()
 {
+    if (songBlockLabelEditing)
+    {
+        SE->keyboardManager.makeMove('w');
+        return;
+    }
+
     if (SE->isBusy)
     {
         return;
@@ -746,6 +872,12 @@ static void functUp()
 
 static void functDown()
 {
+    if (songBlockLabelEditing)
+    {
+        SE->keyboardManager.makeMove('s');
+        return;
+    }
+
     if (SE->isBusy)
     {
         return;
@@ -772,6 +904,12 @@ static void functDown()
 
 static void functLeft()
 {
+    if (songBlockLabelEditing)
+    {
+        SE->keyboardManager.makeMove('a');
+        return;
+    }
+
     if (SE->isBusy)
     {
         return;
@@ -814,6 +952,12 @@ static void functLeft()
 
 static void functRight()
 {
+    if (songBlockLabelEditing)
+    {
+        SE->keyboardManager.makeMove('d');
+        return;
+    }
+
     if (SE->isBusy)
     {
         return;
@@ -1033,7 +1177,7 @@ void cSongEditor::readSong()
     songPlayerData.midiTracksNamesBuffLen = TRACK_NAME_LENGTH + 1;
     songPlayerData.list = &patternsList;
     songPlayerData.songData = mtProject.song.playlist;
-    songPlayerData.songBlockColors = newFileManager.songBlockColors;
+    songPlayerData.songBlockLabels = &newFileManager.songBlockLabels[0][0];
     songPlayerData.normalPatternsBitmask = mtProject.values.allPatternsBitmask;
     songPlayerData.midiPatternsBitmask = mtProject.values.allPatternsBitmaskMidi;
     songPlayerData.normalTracksMute = mtProject.values.trackMute;
@@ -1159,6 +1303,12 @@ void cSongEditor::changeSelectedPlayListPattern(int value)
 
 static void functPads(uint8_t pad, uint8_t state, int16_t)
 {
+    if (songBlockLabelEditing)
+    {
+        SE->keyboardManager.onPadChange(pad, state);
+        return;
+    }
+
     if (SE->isBusy)
     {
         return;
@@ -1656,6 +1806,12 @@ static void functCopyPaste()
 
 static void functInsert()
 {
+    if (songBlockLabelEditing)
+    {
+        SE->keyboardManager.confirmKey();
+        return;
+    }
+
     if (SE->buttons->isButtonPressed(interfaceButtonShift))
     {
         switch (SE->selectedPlace)
@@ -1668,6 +1824,12 @@ static void functInsert()
 
 static void functDelete()
 {
+    if (songBlockLabelEditing)
+    {
+        SE->keyboardManager.makeBackspace();
+        return;
+    }
+
     if (SE->isBusy)
     {
         return;

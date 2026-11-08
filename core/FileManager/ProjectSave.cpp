@@ -185,14 +185,14 @@ void ProjectSave::copyProject()
         return;
     }
 
-    char destSongColorsPath[PATCH_SIZE];
-    snprintf(destSongColorsPath,
-             sizeof(destSongColorsPath),
-             cProjectSongColorsFileFormat,
+    char destSongLabelsPath[PATCH_SIZE];
+    snprintf(destSongLabelsPath,
+             sizeof(destSongLabelsPath),
+             cProjectSongLabelsFileFormat,
              newFileManager.getCurrentProjectPath(),
              newFileManager.getCurrentProjectName());
-    if (fileSystem->exists(cWorkspaceSongColorsFilePath) &&
-        fileTransfer.copyFile(cWorkspaceSongColorsFilePath, destSongColorsPath) != fileTransferEnd)
+    if (fileSystem->exists(cWorkspaceSongLabelsFilePath) &&
+        fileTransfer.copyFile(cWorkspaceSongLabelsFilePath, destSongLabelsPath) != fileTransferEnd)
     {
         operationError();
     }

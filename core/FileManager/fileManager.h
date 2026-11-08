@@ -154,8 +154,8 @@ class Synth;
 class cFileManager
 {
   public:
-    // Per-song-position manual colours, stored separately to preserve project-file compatibility.
-    uint8_t songBlockColors[SONG_MAX * kAllTracks] = {};
+    // Per-pattern/track labels, stored separately to preserve project-file compatibility.
+    char songBlockLabels[SONG_MAX * kAllTracks][4] = {};
     void init(FileSystem* fileSystem, Synth* synth, bool stereoSampleMode);
     void update();
     void setCrcCalculator(CrcCalculator* crcCalculator);
@@ -307,9 +307,6 @@ class cFileManager
     uint8_t getSongPattern(uint8_t pos);
     std::optional<int> getPatternPosInSong(uint8_t patternToSearch);
     void setSongPos(uint8_t pos);
-    void setSongBlockColorForMatchingTracks(uint8_t sourcePatternIndex,
-                                             uint8_t trackIndex,
-                                             uint8_t color);
     bool switchNextPatternInSong();
     void copySongTracks(char* currentProjectPath,
                         uint8_t srcPatternIdx,

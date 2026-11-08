@@ -55,8 +55,8 @@ const char cNewProjectName[] = "New Project";
 
 const char cWorkspacePath[] = "Workspace";
 const char cProjectFileNameInWorkspace[] = "Workspace/project.mt";
-const char cWorkspaceSongColorsFilePath[] = "Workspace/songcolors.bin";
-const char cProjectSongColorsFileFormat[] = "%s/%s/songcolors.bin";
+const char cWorkspaceSongLabelsFilePath[] = "Workspace/songlabels.bin";
+const char cProjectSongLabelsFileFormat[] = "%s/%s/songlabels.bin";
 const char cWorkspacePatternsPath[] = "Workspace/patterns";
 const char cWorkspacePatternFileFormat[] = "Workspace/patterns/pattern_%02d.mtp";
 const char cWorkspaceInstrumentsPath[] = "Workspace/instruments";

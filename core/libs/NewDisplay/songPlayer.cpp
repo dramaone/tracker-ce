@@ -785,7 +785,8 @@ void cSongPlayer::fillBlocks()
 
                 const uint16_t localX =
                   posX + BLOCKS_MARGIN + track * (blockWidth + BLOCK_SPACING);
-                API_COLOR(colors[0]);
+                // Active song blocks have a white fill, so use the theme's dark text colour.
+                API_COLOR(colors[6]);
                 API_CMD_TEXT(localX + blockWidth / 2,
                              localY + BLOCK_HEIGHT / 2,
                              font->handle,

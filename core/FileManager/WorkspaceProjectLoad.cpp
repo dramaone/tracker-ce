@@ -145,7 +145,7 @@ void WorkspaceProjectLoad::loadProjectFromWorkspaceInit()
         fileSystem->getFileSize(cWorkspaceSongLabelsFilePath) == sizeof(newFileManager.songBlockLabels))
     {
         fileTransfer.loadFileToMemory(cWorkspaceSongLabelsFilePath,
-                                      newFileManager.songBlockLabels,
+                                      reinterpret_cast<uint8_t*>(newFileManager.songBlockLabels),
                                       sizeof(newFileManager.songBlockLabels),
                                       fileWholeOnce);
     }

@@ -145,7 +145,7 @@ jobs:
               '<summary><b>How to Install & Flash on Your Tracker</b></summary>',
               '',
               '### 1. Flashing the Firmware (`.ptf`)',
-              `1. Download and unzip **[polyend-tracker-ce-firmware.zip](${fwUrl})**.`,
+              `1. Download and unzip **[DRAMA1TEXT001.zip](${fwUrl})**.`,
               '2. Copy the `.ptf` file matching your hardware to the **`/Firmware/`** folder on your Tracker\'s microSD card:',
               `   * **Original Polyend Tracker**: \`PolyendTracker_CE_${shortSha}.ptf\``,
               `   * **Polyend Tracker+**: \`TrackerPlus_CE_${shortSha}.ptf\``,

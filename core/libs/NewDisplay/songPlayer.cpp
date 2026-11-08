@@ -736,8 +736,12 @@ void cSongPlayer::fillBlocks()
             }
             else
             {
-                // Active song cells always use the standard white background.
-                API_COLOR(colors[1]);
+                const bool isMuted =
+                  track < controlData->normalTracksCount
+                    ? controlData->normalTracksMute[track]
+                    : controlData->midiTracksMute[track - controlData->normalTracksCount];
+                // Active song cells are white; retain the existing muted-track shade.
+                API_COLOR(isMuted ? colors[7] : colors[1]);
                 API_VERTEX2F((localX), (localY + 1));
                 API_VERTEX2F((localX + blockWidth - 1), (localY + BLOCK_HEIGHT - 1));
             }

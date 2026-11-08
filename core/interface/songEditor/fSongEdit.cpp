@@ -145,6 +145,8 @@ static void finishSongBlockLabelEdit()
     SE->showDefaultScreen();
     SE->activateLabelsBorder();
     SE->refreshSongPlayerControl();
+    // Force the song grid to redraw immediately so a newly saved label is visible.
+    display.synchronizeRefresh();
 }
 
 static void saveSongBlockLabel()

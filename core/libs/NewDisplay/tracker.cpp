@@ -2,6 +2,9 @@
 #include "FT812.h"
 
 #include "display.h"
+#include "mtAudioEngine.h"
+
+#include <algorithm>
 #include "trackerControl.h"
 
 #include <cstring>
@@ -411,6 +414,7 @@ void cTracker::update5()
     }
 
     tracksNumbers();
+    drawTrackLevelBars();
 }
 
 //-------------------------------------------------------------------------------------

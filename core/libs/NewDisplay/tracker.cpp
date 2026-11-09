@@ -3,6 +3,7 @@
 
 #include "display.h"
 #include "mtAudioEngine.h"
+#include "mtSequencer.h"
 
 #include <algorithm>
 #include "trackerControl.h"
@@ -926,11 +927,18 @@ void cTracker::drawTrackLevelBars()
       0x35E000, 0xFFE000, 0xFF5500, 0xFF2040
     };
     constexpr uint8_t segmentCount = 8;
-    constexpr int16_t segmentWidth = 4;
+    constexpr int16_t segmentWidth = 8;
     constexpr int16_t segmentHeight = 2;
     constexpr int16_t segmentGap = 1;
     constexpr float rmsToSegments = 48.0f;
     constexpr float decay = 0.82f;
+
+    // A stopped transport must never leave a frozen level display.
+    if (sequencer.isStop())
+    {
+        std::fill(trackLevelPeaks, trackLevelPeaks + audioEngine::kVoices, 0.0f);
+        return;
+    }
 
     API_BEGIN(RECTS);
     for (uint8_t column = 0; column < columnsCount; column++)
@@ -963,7 +971,10 @@ void cTracker::drawTrackLevelBars()
         }
 
         const uint8_t litSegments = static_cast<uint8_t>(trackLevelPeaks[track] + 0.5f);
-        const int16_t x = rightOffset + ((column + 1) * tracksWidth) - 7;
+        // Centre the wider meter in the track header rather than pinning it
+        // to the far-right edge of each track.
+        const int16_t trackLeft = rightOffset + (column * tracksWidth);
+        const int16_t x = trackLeft + ((tracksWidth - segmentWidth) / 2);
         for (uint8_t segment = 0; segment < litSegments; segment++)
         {
             const int16_t y = posY + 2 +

@@ -914,6 +914,64 @@ void cTracker::drawRowNumbers(uint16_t* rowNumbers, bool showTrackEndLines)
 
 //-------------------------------------------------------------------------------------
 // tracks numbers
+// Eight independent audio-track meters in the Pattern Mode track header.
+void cTracker::drawTrackLevelBars()
+{
+    static const uint32_t ledColors[8] = {
+      0x0055FF, 0x008CFF, 0x00BFFF, 0x00D060,
+      0x35E000, 0xFFE000, 0xFF5500, 0xFF2040
+    };
+    constexpr uint8_t segmentCount = 8;
+    constexpr int16_t segmentWidth = 4;
+    constexpr int16_t segmentHeight = 2;
+    constexpr int16_t segmentGap = 1;
+    constexpr float rmsToSegments = 48.0f;
+    constexpr float decay = 0.82f;
+
+    API_BEGIN(RECTS);
+    for (uint8_t column = 0; column < columnsCount; column++)
+    {
+        const int16_t track = tracks->firstVisibleTrack + column;
+        if (track < 0 || track >= audioEngine::kVoices)
+        {
+            continue;
+        }
+
+        float rms = instrumentPlayer[track].getRMSValue();
+        if (rms < 0.0f)
+        {
+            rms = 0.0f;
+        }
+
+        float target = rms * rmsToSegments;
+        if (target > segmentCount)
+        {
+            target = segmentCount;
+        }
+
+        if (target >= trackLevelPeaks[track])
+        {
+            trackLevelPeaks[track] = target;
+        }
+        else
+        {
+            trackLevelPeaks[track] = std::max(target, trackLevelPeaks[track] * decay);
+        }
+
+        const uint8_t litSegments = static_cast<uint8_t>(trackLevelPeaks[track] + 0.5f);
+        const int16_t x = rightOffset + ((column + 1) * tracksWidth) - 7;
+        for (uint8_t segment = 0; segment < litSegments; segment++)
+        {
+            const int16_t y = posY + 2 +
+                              (segmentCount - 1 - segment) * (segmentHeight + segmentGap);
+            API_COLOR(ledColors[segment]);
+            API_VERTEX2F(x, y);
+            API_VERTEX2F(x + segmentWidth, y + segmentHeight);
+        }
+    }
+    API_END();
+}
+
 void cTracker::tracksNumbers()
 {
     if (!tracks->showTrackNames)

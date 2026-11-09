@@ -1,7 +1,6 @@
 #include "FT812.h"
 #include "display.h"
 #include "displayControls.h"
-#include "mtAudioEngine.h"
 #include "songPlayerControl.h"
 #include <algorithm>
 #include <string.h>
@@ -202,64 +201,6 @@ void cSongPlayer::update()
 void cSongPlayer::update2()
 {
     drawTrackNames();
-    drawTrackLevelBars();
-}
-
-void cSongPlayer::drawTrackLevelBars()
-{
-    // Eight engine voices map to the eight audio tracks. Read RMS on the UI
-    // refresh, never from the audio callback, and smooth the falloff for an
-    // OctaMED-style LED display.
-    static const uint32_t ledColors[12] = {
-      0x00BFFF, 0x008CFF, 0x0055FF, 0x00C8FF,
-      0x00D060, 0x35E000, 0xA0E000, 0xFFE000,
-      0xFFAA00, 0xFF5500, 0xFF2040, 0xFF40C8
-    };
-    constexpr uint8_t segmentCount = 12;
-    constexpr int16_t segmentHeight = 2;
-    constexpr int16_t segmentGap = 1;
-    constexpr int16_t barTop = 3;
-    constexpr float rmsToSegments = 48.0f;
-    constexpr float decay = 0.82f;
-
-    API_BEGIN(RECTS);
-    for (uint8_t track = 0; track < audioEngine::kVoices; track++)
-    {
-        float rms = instrumentPlayer[track].getRMSValue();
-        if (rms < 0.0f)
-        {
-            rms = 0.0f;
-        }
-
-        float target = rms * rmsToSegments;
-        if (target > segmentCount)
-        {
-            target = segmentCount;
-        }
-
-        if (target >= trackLevelPeaks[track])
-        {
-            trackLevelPeaks[track] = target;
-        }
-        else
-        {
-            trackLevelPeaks[track] = std::max(target, trackLevelPeaks[track] * decay);
-        }
-
-        const uint8_t litSegments = static_cast<uint8_t>(trackLevelPeaks[track] + 0.5f);
-        const int16_t x = posX + BLOCKS_MARGIN +
-                          ((blockWidth + BLOCK_SPACING) * track) +
-                          ((blockWidth - 4) / 2);
-        for (uint8_t segment = 0; segment < litSegments; segment++)
-        {
-            const int16_t y = posY + barTop +
-                              (segmentCount - 1 - segment) * (segmentHeight + segmentGap);
-            API_COLOR(ledColors[segment]);
-            API_VERTEX2F(x, y);
-            API_VERTEX2F(x + 4, y + segmentHeight);
-        }
-    }
-    API_END();
 }
 
 void cSongPlayer::update3()

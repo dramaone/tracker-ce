@@ -100,6 +100,7 @@ class cSongPlayer : public cDisplayControl
   private:
     void showList();
     void drawTrackNames();
+    void drawTrackLevelBars();
     void drawIcon(int pos, int row, int x, int y, int h);
     void fillBlocks();
     void drawProgressLine();
@@ -130,6 +131,7 @@ class cSongPlayer : public cDisplayControl
     uint8_t disableBar;
 
     int8_t listAnimationStep = 0;
+    float trackLevelPeaks[8] = {};
 };
 
 #endif

@@ -927,9 +927,10 @@ void cTracker::drawTrackLevelBars()
       0x35E000, 0xFFE000, 0xFF5500, 0xFF2040
     };
     constexpr uint8_t segmentCount = 8;
-    constexpr int16_t segmentWidth = 8;
-    constexpr int16_t segmentHeight = 2;
-    constexpr int16_t segmentGap = 1;
+    // 3x the previous width and roughly 4x the overall height.
+    constexpr int16_t segmentWidth = 24;
+    constexpr int16_t segmentHeight = 10;
+    constexpr int16_t segmentGap = 2;
     constexpr float rmsToSegments = 48.0f;
     constexpr float decay = 0.82f;
 
@@ -971,14 +972,15 @@ void cTracker::drawTrackLevelBars()
         }
 
         const uint8_t litSegments = static_cast<uint8_t>(trackLevelPeaks[track] + 0.5f);
-        // Centre the wider meter in the track header rather than pinning it
-        // to the far-right edge of each track.
+        // Centre each wider meter in its own track and grow it upwards
+        // from the bottom of the visible pattern area.
         const int16_t trackLeft = rightOffset + (column * tracksWidth);
         const int16_t x = trackLeft + ((tracksWidth - segmentWidth) / 2);
+        const int16_t meterBottom = posY + height - 3;
         for (uint8_t segment = 0; segment < litSegments; segment++)
         {
-            const int16_t y = posY + 2 +
-                              (segmentCount - 1 - segment) * (segmentHeight + segmentGap);
+            const int16_t y = meterBottom - segmentHeight -
+                              (segment * (segmentHeight + segmentGap));
             API_COLOR(ledColors[segment]);
             API_VERTEX2F(x, y);
             API_VERTEX2F(x + segmentWidth, y + segmentHeight);

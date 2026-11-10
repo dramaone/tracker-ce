@@ -922,19 +922,18 @@ void cTracker::drawRowNumbers(uint16_t* rowNumbers, bool showTrackEndLines)
 // Eight independent audio-track meters in the Pattern Mode track header.
 void cTracker::drawTrackLevelBars()
 {
-    static const uint32_t ledColors[8] = {
-      0x0055FF, 0x008CFF, 0x00BFFF, 0x00D060,
-      0x35E000, 0xFFE000, 0xFF5500, 0xFF2040
+    // OctaMED-inspired continuous spectrum: vivid green at the bottom,
+    // blending through yellow and orange into red at the top.
+    static const uint32_t gradientStops[5] = {
+      0x00F040, 0x80F000, 0xFFF000, 0xFF8000, 0xFF2030
     };
-    constexpr uint8_t segmentCount = 8;
-    // 3x the previous width and roughly 4x the overall height.
-    constexpr int16_t segmentWidth = 24;
-    constexpr int16_t segmentHeight = 10;
-    constexpr int16_t segmentGap = 2;
-    constexpr float rmsToSegments = 48.0f;
-    constexpr float decay = 0.82f;
+    constexpr uint8_t stopCount = 5;
+    constexpr int16_t meterWidth = 24;
+    constexpr int16_t meterHeight = 110;
+    constexpr int16_t bandHeight = 2;
+    constexpr float rmsToFullScale = 48.0f;
+    constexpr float release = 0.70f;
 
-    // A stopped transport must never leave a frozen level display.
     if (sequencer.isStop())
     {
         std::fill(trackLevelPeaks, trackLevelPeaks + audioEngine::kVoices, 0.0f);
@@ -956,34 +955,52 @@ void cTracker::drawTrackLevelBars()
             rms = 0.0f;
         }
 
-        float target = rms * rmsToSegments;
-        if (target > segmentCount)
+        float target = rms * rmsToFullScale;
+        if (target > 1.0f)
         {
-            target = segmentCount;
+            target = 1.0f;
         }
 
+        // Immediate attack, with a quicker natural fall than the old
+        // segmented peak display.
         if (target >= trackLevelPeaks[track])
         {
             trackLevelPeaks[track] = target;
         }
         else
         {
-            trackLevelPeaks[track] = std::max(target, trackLevelPeaks[track] * decay);
+            trackLevelPeaks[track] = std::max(target, trackLevelPeaks[track] * release);
         }
 
-        const uint8_t litSegments = static_cast<uint8_t>(trackLevelPeaks[track] + 0.5f);
-        // Centre each wider meter in its own track and grow it upwards
-        // from the bottom of the visible pattern area.
         const int16_t trackLeft = rightOffset + (column * tracksWidth);
-        const int16_t x = trackLeft + ((tracksWidth - segmentWidth) / 2);
+        const int16_t x = trackLeft + ((tracksWidth - meterWidth) / 2);
         const int16_t meterBottom = posY + height - 3;
-        for (uint8_t segment = 0; segment < litSegments; segment++)
+        const int16_t litHeight = static_cast<int16_t>(trackLevelPeaks[track] * meterHeight + 0.5f);
+
+        // Draw narrow horizontal bands to create a smooth, continuous
+        // vertical colour blend, clipped precisely to the live level.
+        for (int16_t offset = 0; offset < litHeight; offset += bandHeight)
         {
-            const int16_t y = meterBottom - segmentHeight -
-                              (segment * (segmentHeight + segmentGap));
-            API_COLOR(ledColors[segment]);
+            const int16_t bandSize = std::min<int16_t>(bandHeight, litHeight - offset);
+            const float position = static_cast<float>(offset) / static_cast<float>(meterHeight - 1);
+            const float scaled = position * (stopCount - 1);
+            uint8_t stop = static_cast<uint8_t>(scaled);
+            if (stop >= stopCount - 1)
+            {
+                stop = stopCount - 2;
+            }
+            const float blend = scaled - stop;
+            const uint32_t c0 = gradientStops[stop];
+            const uint32_t c1 = gradientStops[stop + 1];
+            const uint8_t r = static_cast<uint8_t>(((c0 >> 16) & 0xFF) * (1.0f - blend) + ((c1 >> 16) & 0xFF) * blend);
+            const uint8_t g = static_cast<uint8_t>(((c0 >> 8) & 0xFF) * (1.0f - blend) + ((c1 >> 8) & 0xFF) * blend);
+            const uint8_t b = static_cast<uint8_t>((c0 & 0xFF) * (1.0f - blend) + (c1 & 0xFF) * blend);
+            const uint32_t color = (static_cast<uint32_t>(r) << 16) |
+                                   (static_cast<uint32_t>(g) << 8) | b;
+            const int16_t y = meterBottom - offset - bandSize;
+            API_COLOR(color);
             API_VERTEX2F(x, y);
-            API_VERTEX2F(x + segmentWidth, y + segmentHeight);
+            API_VERTEX2F(x + meterWidth, y + bandSize);
         }
     }
     API_END();

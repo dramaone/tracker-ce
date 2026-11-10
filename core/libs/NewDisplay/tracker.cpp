@@ -950,10 +950,9 @@ void cTracker::drawTrackLevelBars()
 
         float rms = instrumentPlayer[track].getRMSValue();
 
-        // getRMSValue() returns -1 when the audio analyser has no fresh
-        // window ready. Keep the last drawn value for that short gap, but
-        // otherwise follow the analyser directly: no additional peak hold
-        // or display-side release.
+        // Let the meter bounce with the music: instant attack and a
+        // short, steep release, with no peak hold or long lingering tail.
+        constexpr float releasePerRefresh = 0.35f;
         if (rms >= 0.0f)
         {
             float target = rms * rmsToFullScale;
@@ -961,7 +960,25 @@ void cTracker::drawTrackLevelBars()
             {
                 target = 1.0f;
             }
-            trackLevelPeaks[track] = target;
+
+            if (target >= trackLevelPeaks[track])
+            {
+                trackLevelPeaks[track] = target;
+            }
+            else
+            {
+                trackLevelPeaks[track] =
+                  target + ((trackLevelPeaks[track] - target) * releasePerRefresh);
+            }
+        }
+        else
+        {
+            trackLevelPeaks[track] *= releasePerRefresh;
+        }
+
+        if (trackLevelPeaks[track] < 0.005f)
+        {
+            trackLevelPeaks[track] = 0.0f;
         }
 
         const int16_t trackLeft = rightOffset + (column * tracksWidth);

@@ -932,7 +932,6 @@ void cTracker::drawTrackLevelBars()
     constexpr int16_t meterHeight = 110;
     constexpr int16_t bandHeight = 2;
     constexpr float rmsToFullScale = 48.0f;
-    constexpr float release = 0.70f;
 
     if (sequencer.isStop())
     {
@@ -950,26 +949,19 @@ void cTracker::drawTrackLevelBars()
         }
 
         float rms = instrumentPlayer[track].getRMSValue();
-        if (rms < 0.0f)
-        {
-            rms = 0.0f;
-        }
 
-        float target = rms * rmsToFullScale;
-        if (target > 1.0f)
+        // getRMSValue() returns -1 when the audio analyser has no fresh
+        // window ready. Keep the last drawn value for that short gap, but
+        // otherwise follow the analyser directly: no additional peak hold
+        // or display-side release.
+        if (rms >= 0.0f)
         {
-            target = 1.0f;
-        }
-
-        // Immediate attack, with a quicker natural fall than the old
-        // segmented peak display.
-        if (target >= trackLevelPeaks[track])
-        {
+            float target = rms * rmsToFullScale;
+            if (target > 1.0f)
+            {
+                target = 1.0f;
+            }
             trackLevelPeaks[track] = target;
-        }
-        else
-        {
-            trackLevelPeaks[track] = std::max(target, trackLevelPeaks[track] * release);
         }
 
         const int16_t trackLeft = rightOffset + (column * tracksWidth);

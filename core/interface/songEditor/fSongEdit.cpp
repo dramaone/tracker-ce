@@ -180,10 +180,7 @@ static void saveSongBlockLabel()
         }
     }
 
-    char* destination =
-      newFileManager.songBlockLabels[(songBlockLabelPattern - 1) * kAllTracks + songBlockLabelTrack];
-    memcpy(destination, filteredLabel, sizeof(filteredLabel));
-    newFileManager.setProjectStructChanged();
+    newFileManager.setSongBlockLabel(songBlockLabelPattern, songBlockLabelTrack, filteredLabel);
 
     finishSongBlockLabelEdit();
 }

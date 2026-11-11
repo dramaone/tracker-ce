@@ -2492,11 +2492,13 @@ AUDIO_CORE_RAM void Sequencer::sendNoteOn(uint8_t track,
     }
     else if (isSampleInstrument(step->instrument) && isSampleTrack(track))
     {
-        const uint8_t noteVelocity = step->volume < 0 ? 100 : static_cast<uint8_t>(
-          std::min<int>(100, step->volume));
-        const uint8_t instrumentVolume = mtProject.instrument[step->instrument].volume;
-        const uint8_t meterLevel = static_cast<uint8_t>(
-          (static_cast<uint16_t>(instrumentVolume) * noteVelocity + 50) / 100);
+        // The Pattern Mode meter follows the programmed note volume.
+        // An unset step volume means full level; instrument volume is not
+        // folded into this display value.
+        const uint8_t meterLevel = step->volume < 0
+                                     ? 100
+                                     : static_cast<uint8_t>(
+                                         std::min<int>(100, step->volume));
 
         if (instrumentPlayer[track].noteOn(step->instrument,
                                            step->note,

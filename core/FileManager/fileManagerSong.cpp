@@ -65,6 +65,67 @@ bool cFileManager::switchNextPatternInSong()
 }
 
 
+void cFileManager::setSongBlockLabel(uint8_t patternIdx, uint8_t trackIdx, const char label[4])
+{
+    if (patternIdx == 0 || patternIdx > PATTERN_INDEX_MAX || trackIdx >= kAllTracks)
+    {
+        return;
+    }
+
+    char path[PATCH_SIZE];
+    snprintf(path, sizeof(path), "Workspace/patterns/pattern_%02d.mtp", patternIdx);
+    Sequencer::strPattern* referencePattern = &songTrackCopy[0];
+    if (!readPatternFile(path, referencePattern))
+    {
+        return;
+    }
+
+    const auto& referenceTrack = referencePattern->track[trackIdx];
+    const bool referenceActive =
+      trackIdx < kSampleTracks
+        ? (mtProject.values.allPatternsBitmask[patternIdx - 1] & (1U << trackIdx)) != 0
+        : (mtProject.values.allPatternsBitmaskMidi[patternIdx - 1] &
+           (1U << (trackIdx - kSampleTracks))) != 0;
+
+    if (referenceActive)
+    {
+        for (uint8_t candidatePattern = 1; candidatePattern <= PATTERN_INDEX_MAX; candidatePattern++)
+        {
+            snprintf(path, sizeof(path), "Workspace/patterns/pattern_%02d.mtp", candidatePattern);
+            if (!readPatternFile(path, &songTrackCopy[1]))
+            {
+                continue;
+            }
+
+            for (uint8_t candidateTrack = 0; candidateTrack < kAllTracks; candidateTrack++)
+            {
+                const bool candidateActive =
+                  candidateTrack < kSampleTracks
+                    ? (mtProject.values.allPatternsBitmask[candidatePattern - 1] &
+                       (1U << candidateTrack)) != 0
+                    : (mtProject.values.allPatternsBitmaskMidi[candidatePattern - 1] &
+                       (1U << (candidateTrack - kSampleTracks))) != 0;
+                if (!candidateActive)
+                {
+                    continue;
+                }
+
+                const auto& track = songTrackCopy[1].track[candidateTrack];
+                if (track.length == referenceTrack.length &&
+                    memcmp(track.step, referenceTrack.step, sizeof(referenceTrack.step)) == 0)
+                {
+                    memcpy(songBlockLabels[(candidatePattern - 1) * kAllTracks + candidateTrack],
+                           label,
+                           4);
+                }
+            }
+        }
+    }
+
+    memcpy(songBlockLabels[(patternIdx - 1) * kAllTracks + trackIdx], label, 4);
+    setProjectStructChanged();
+}
+
 void cFileManager::copySongTracks(char* currentProjectPath,
                                   uint8_t srcPatternIdx,
                                   uint8_t destPaternIdx,
@@ -130,6 +191,11 @@ void cFileManager::copySongTracks(char* currentProjectPath,
             sequencer.copyStep(
               &srcTrack->step[stepIdx], &destTrack->step[stepIdx], !isSampleTrack(destTrackIdx));
         }
+
+        // A pasted musical block inherits the source block's label as well.
+        memcpy(songBlockLabels[(destPaternIdx - 1) * kAllTracks + destTrackIdx],
+               songBlockLabels[(srcPatternIdx - 1) * kAllTracks + srcTrackIdx],
+               4);
     }
 
     uint8_t destBitmaskIdx = destPaternIdx - 1;

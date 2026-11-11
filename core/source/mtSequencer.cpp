@@ -2492,13 +2492,23 @@ AUDIO_CORE_RAM void Sequencer::sendNoteOn(uint8_t track,
     }
     else if (isSampleInstrument(step->instrument) && isSampleTrack(track))
     {
-        instrumentPlayer[track].noteOn(step->instrument,
-                                       step->note,
-                                       step->volume,
-                                       step->fx[0].type,
-                                       step->fx[0].value,
-                                       step->fx[1].type,
-                                       step->fx[1].value);
+        const uint8_t noteVelocity = step->volume < 0 ? 100 : static_cast<uint8_t>(
+          std::min<int>(100, step->volume));
+        const uint8_t instrumentVolume = mtProject.instrument[step->instrument].volume;
+        const uint8_t meterLevel = static_cast<uint8_t>(
+          (static_cast<uint16_t>(instrumentVolume) * noteVelocity + 50) / 100);
+
+        if (instrumentPlayer[track].noteOn(step->instrument,
+                                           step->note,
+                                           step->volume,
+                                           step->fx[0].type,
+                                           step->fx[0].value,
+                                           step->fx[1].type,
+                                           step->fx[1].value))
+        {
+            trackMeterLevel[track] = meterLevel;
+            trackMeterTrigger[track] = 1;
+        }
     }
 }
 

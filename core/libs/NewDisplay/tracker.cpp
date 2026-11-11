@@ -931,11 +931,15 @@ void cTracker::drawTrackLevelBars()
     constexpr int16_t meterWidth = 24;
     constexpr int16_t meterHeight = 110;
     constexpr int16_t bandHeight = 2;
-    constexpr float rmsToFullScale = 48.0f;
+    constexpr float releasePerRefresh = 0.86f;
 
     if (sequencer.isStop())
     {
         std::fill(trackLevelPeaks, trackLevelPeaks + audioEngine::kVoices, 0.0f);
+        for (uint8_t track = 0; track < audioEngine::kVoices; ++track)
+        {
+            trackMeterTrigger[track] = 0;
+        }
         return;
     }
 
@@ -948,28 +952,12 @@ void cTracker::drawTrackLevelBars()
             continue;
         }
 
-        float rms = instrumentPlayer[track].getRMSValue();
-
-        // Let the meter bounce with the music: instant attack and a
-        // short, steep release, with no peak hold or long lingering tail.
-        constexpr float releasePerRefresh = 0.35f;
-        if (rms >= 0.0f)
+        // A successful sample note-on sets a per-track target level. Attack is
+        // immediate; every track shares the same smooth, quick exponential decay.
+        if (trackMeterTrigger[track])
         {
-            float target = rms * rmsToFullScale;
-            if (target > 1.0f)
-            {
-                target = 1.0f;
-            }
-
-            if (target >= trackLevelPeaks[track])
-            {
-                trackLevelPeaks[track] = target;
-            }
-            else
-            {
-                trackLevelPeaks[track] =
-                  target + ((trackLevelPeaks[track] - target) * releasePerRefresh);
-            }
+            trackLevelPeaks[track] = static_cast<float>(trackMeterLevel[track]) / 100.0f;
+            trackMeterTrigger[track] = 0;
         }
         else
         {

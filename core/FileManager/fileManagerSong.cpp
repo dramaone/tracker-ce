@@ -81,13 +81,68 @@ void cFileManager::setSongBlockLabel(uint8_t patternIdx, uint8_t trackIdx, const
     }
 
     const auto& referenceTrack = referencePattern->track[trackIdx];
-    const bool referenceActive =
-      trackIdx < kSampleTracks
-        ? (mtProject.values.allPatternsBitmask[patternIdx - 1] & (1U << trackIdx)) != 0
-        : (mtProject.values.allPatternsBitmaskMidi[patternIdx - 1] &
-           (1U << (trackIdx - kSampleTracks))) != 0;
 
-    if (referenceActive)
+    // Compare the actual musical fields, not the raw struct bytes. strStep can
+    // contain padding bytes, and those bytes are not copied consistently by
+    // the normal song copy routine. A raw memcmp therefore misses musically
+    // identical blocks (especially older copied blocks).
+    auto tracksMatch = [](const Sequencer::strPattern::strTrack& first,
+                          const Sequencer::strPattern::strTrack& second) -> bool
+    {
+        if (first.length != second.length)
+        {
+            return false;
+        }
+
+        for (uint16_t stepIdx = 0; stepIdx <= Sequencer::MAXSTEP; stepIdx++)
+        {
+            const auto& a = first.step[stepIdx];
+            const auto& b = second.step[stepIdx];
+
+            if (a.note != b.note || a.instrument != b.instrument ||
+                a.volume != b.volume || a.micromove != b.micromove)
+            {
+                return false;
+            }
+
+            for (uint8_t fxIdx = 0; fxIdx < kStepFxSlots; fxIdx++)
+            {
+                if (a.fx[fxIdx].type != b.fx[fxIdx].type ||
+                    a.fx[fxIdx].value != b.fx[fxIdx].value)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    };
+
+    auto trackHasData = [](const Sequencer::strPattern::strTrack& track) -> bool
+    {
+        for (uint16_t stepIdx = 0; stepIdx <= track.length; stepIdx++)
+        {
+            const auto& step = track.step[stepIdx];
+            if (step.note != Sequencer::STEP_NOTE_EMPTY ||
+                step.instrument >= MIDI_INSTRUMENTS_START_IDX || step.volume >= 0 ||
+                step.micromove >= 0)
+            {
+                return true;
+            }
+
+            for (uint8_t fxIdx = 0; fxIdx < kStepFxSlots; fxIdx++)
+            {
+                if (step.fx[fxIdx].type != 0)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    };
+
+    if (trackHasData(referenceTrack))
     {
         for (uint8_t candidatePattern = 1; candidatePattern <= PATTERN_INDEX_MAX; candidatePattern++)
         {
@@ -99,20 +154,8 @@ void cFileManager::setSongBlockLabel(uint8_t patternIdx, uint8_t trackIdx, const
 
             for (uint8_t candidateTrack = 0; candidateTrack < kAllTracks; candidateTrack++)
             {
-                const bool candidateActive =
-                  candidateTrack < kSampleTracks
-                    ? (mtProject.values.allPatternsBitmask[candidatePattern - 1] &
-                       (1U << candidateTrack)) != 0
-                    : (mtProject.values.allPatternsBitmaskMidi[candidatePattern - 1] &
-                       (1U << (candidateTrack - kSampleTracks))) != 0;
-                if (!candidateActive)
-                {
-                    continue;
-                }
-
-                const auto& track = songTrackCopy[1].track[candidateTrack];
-                if (track.length == referenceTrack.length &&
-                    memcmp(track.step, referenceTrack.step, sizeof(referenceTrack.step)) == 0)
+                const auto& candidate = songTrackCopy[1].track[candidateTrack];
+                if (trackHasData(candidate) && tracksMatch(candidate, referenceTrack))
                 {
                     memcpy(songBlockLabels[(candidatePattern - 1) * kAllTracks + candidateTrack],
                            label,

@@ -94,7 +94,9 @@ void cFileManager::setSongBlockLabel(uint8_t patternIdx, uint8_t trackIdx, const
             return false;
         }
 
-        for (uint16_t stepIdx = 0; stepIdx <= Sequencer::MAXSTEP; stepIdx++)
+        // Only steps inside the track's active length define this block.
+        // Unused steps can contain stale data left over from earlier edits.
+        for (uint16_t stepIdx = 0; stepIdx <= first.length; stepIdx++)
         {
             const auto& a = first.step[stepIdx];
             const auto& b = second.step[stepIdx];

@@ -107,7 +107,7 @@ void cFileManager::setSongBlockLabel(uint8_t patternIdx, uint8_t trackIdx, const
                 return false;
             }
 
-            for (uint8_t fxIdx = 0; fxIdx < kStepFxSlots; fxIdx++)
+            for (uint8_t fxIdx = 0; fxIdx < (sizeof(a.fx) / sizeof(a.fx[0])); fxIdx++)
             {
                 if (a.fx[fxIdx].type != b.fx[fxIdx].type ||
                     a.fx[fxIdx].value != b.fx[fxIdx].value)
@@ -132,7 +132,7 @@ void cFileManager::setSongBlockLabel(uint8_t patternIdx, uint8_t trackIdx, const
                 return true;
             }
 
-            for (uint8_t fxIdx = 0; fxIdx < kStepFxSlots; fxIdx++)
+            for (uint8_t fxIdx = 0; fxIdx < (sizeof(step.fx) / sizeof(step.fx[0])); fxIdx++)
             {
                 if (step.fx[fxIdx].type != 0)
                 {

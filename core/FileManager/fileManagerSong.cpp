@@ -146,23 +146,35 @@ void cFileManager::setSongBlockLabel(uint8_t patternIdx, uint8_t trackIdx, const
 
     if (trackHasData(referenceTrack))
     {
-        for (uint8_t candidatePattern = 1; candidatePattern <= PATTERN_INDEX_MAX; candidatePattern++)
+        // Only inspect patterns that actually appear in the song, and only the
+        // selected track column. Scanning all 255 pattern files during the Save
+        // button callback can stall the UI (and can match unrelated tracks).
+        bool checkedPatterns[PATTERN_INDEX_MAX + 1] = {};
+        for (uint16_t songPos = 0; songPos < SONG_MAX; songPos++)
         {
+            const uint8_t candidatePattern = mtProject.song.playlist[songPos];
+            if (candidatePattern == PLAYLIST_EMPTY_SLOT)
+            {
+                break;
+            }
+            if (candidatePattern > PATTERN_INDEX_MAX || checkedPatterns[candidatePattern])
+            {
+                continue;
+            }
+            checkedPatterns[candidatePattern] = true;
+
             snprintf(path, sizeof(path), "Workspace/patterns/pattern_%02d.mtp", candidatePattern);
             if (!readPatternFile(path, &songTrackCopy[1]))
             {
                 continue;
             }
 
-            for (uint8_t candidateTrack = 0; candidateTrack < kAllTracks; candidateTrack++)
+            const auto& candidate = songTrackCopy[1].track[trackIdx];
+            if (trackHasData(candidate) && tracksMatch(candidate, referenceTrack))
             {
-                const auto& candidate = songTrackCopy[1].track[candidateTrack];
-                if (trackHasData(candidate) && tracksMatch(candidate, referenceTrack))
-                {
-                    memcpy(songBlockLabels[(candidatePattern - 1) * kAllTracks + candidateTrack],
-                           label,
-                           4);
-                }
+                memcpy(songBlockLabels[(candidatePattern - 1) * kAllTracks + trackIdx],
+                       label,
+                       4);
             }
         }
     }

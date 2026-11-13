@@ -1,3 +1,4 @@
+# Rebuild with the current DRAMA1TEXT012 label
 name: Build Tracker CE Firmware
 
 on:

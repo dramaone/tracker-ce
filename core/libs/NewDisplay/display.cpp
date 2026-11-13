@@ -655,7 +655,9 @@ void cDisplay::step3()
             }
             else
             {
-                break;
+                // A large control must not prevent later, smaller controls (such as
+                // the on-screen keyboard) from being appended to the display list.
+                continue;
             }
         }
     }

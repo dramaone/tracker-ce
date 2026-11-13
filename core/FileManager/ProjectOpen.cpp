@@ -346,6 +346,20 @@ void ProjectOpen::openProjectFinish()
 
     newFileManager.getPatternsMetadata()->copyPatternsMetadata(srcFilePath,
                                                                cWorkspacePatternsMetadataFilePath);
+    //------------ per-pattern/track text labels
+    snprintf(srcFilePath,
+             pathSize,
+             cProjectSongLabelsFileFormat,
+             newFileManager.getCurrentProjectPath(),
+             newFileManager.getCurrentProjectName());
+    if (fileSystem->exists(srcFilePath))
+    {
+        fileTransfer.copyFile(srcFilePath, cWorkspaceSongLabelsFilePath);
+    }
+    else if (fileSystem->exists(cWorkspaceSongLabelsFilePath))
+    {
+        fileSystem->remove(cWorkspaceSongLabelsFilePath);
+    }
     //------------ synth patches
 
 #if FILEMANAGER_HANDLE_SYNTH == 1

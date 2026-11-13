@@ -48,6 +48,7 @@ typedef struct
 {
     uint8_t songLength;
     uint8_t* songData;
+    char* songBlockLabels;
     uint8_t* isEditMode;
     uint8_t isListActive;
 

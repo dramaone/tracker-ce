@@ -2,6 +2,10 @@
 #include "FT812.h"
 
 #include "display.h"
+#include "mtAudioEngine.h"
+#include "mtSequencer.h"
+
+#include <algorithm>
 #include "trackerControl.h"
 
 #include <cstring>
@@ -411,6 +415,7 @@ void cTracker::update5()
     }
 
     tracksNumbers();
+    drawTrackLevelBars();
 }
 
 //-------------------------------------------------------------------------------------
@@ -914,6 +919,90 @@ void cTracker::drawRowNumbers(uint16_t* rowNumbers, bool showTrackEndLines)
 
 //-------------------------------------------------------------------------------------
 // tracks numbers
+// Eight independent audio-track meters in the Pattern Mode track header.
+void cTracker::drawTrackLevelBars()
+{
+    // OctaMED-inspired continuous spectrum: vivid green at the bottom,
+    // blending through yellow and orange into red at the top.
+    static const uint32_t gradientStops[5] = {
+      0x00F040, 0x80F000, 0xFFF000, 0xFF8000, 0xFF2030
+    };
+    constexpr uint8_t stopCount = 5;
+    constexpr int16_t meterWidth = 24;
+    constexpr int16_t meterHeight = 110;
+    constexpr int16_t bandHeight = 2;
+    constexpr float releasePerRefresh = 0.86f;
+
+    if (sequencer.isStop())
+    {
+        std::fill(trackLevelPeaks, trackLevelPeaks + audioEngine::kVoices, 0.0f);
+        for (uint8_t track = 0; track < audioEngine::kVoices; ++track)
+        {
+            trackMeterTrigger[track] = 0;
+        }
+        return;
+    }
+
+    API_BEGIN(RECTS);
+    for (uint8_t column = 0; column < columnsCount; column++)
+    {
+        const int16_t track = tracks->firstVisibleTrack + column;
+        if (track < 0 || track >= audioEngine::kVoices)
+        {
+            continue;
+        }
+
+        // A successful sample note-on sets a per-track target level. Attack is
+        // immediate; every track shares the same smooth, quick exponential decay.
+        if (trackMeterTrigger[track])
+        {
+            trackLevelPeaks[track] = static_cast<float>(trackMeterLevel[track]) / 100.0f;
+            trackMeterTrigger[track] = 0;
+        }
+        else
+        {
+            trackLevelPeaks[track] *= releasePerRefresh;
+        }
+
+        if (trackLevelPeaks[track] < 0.005f)
+        {
+            trackLevelPeaks[track] = 0.0f;
+        }
+
+        const int16_t trackLeft = rightOffset + (column * tracksWidth);
+        const int16_t x = trackLeft + ((tracksWidth - meterWidth) / 2);
+        const int16_t meterBottom = posY + height - 3;
+        const int16_t litHeight = static_cast<int16_t>(trackLevelPeaks[track] * meterHeight + 0.5f);
+
+        // Draw narrow horizontal bands to create a smooth, continuous
+        // vertical colour blend, clipped precisely to the live level.
+        for (int16_t offset = 0; offset < litHeight; offset += bandHeight)
+        {
+            const int16_t bandSize = std::min<int16_t>(bandHeight, litHeight - offset);
+            const float position = static_cast<float>(offset) / static_cast<float>(meterHeight - 1);
+            const float scaled = position * (stopCount - 1);
+            uint8_t stop = static_cast<uint8_t>(scaled);
+            if (stop >= stopCount - 1)
+            {
+                stop = stopCount - 2;
+            }
+            const float blend = scaled - stop;
+            const uint32_t c0 = gradientStops[stop];
+            const uint32_t c1 = gradientStops[stop + 1];
+            const uint8_t r = static_cast<uint8_t>(((c0 >> 16) & 0xFF) * (1.0f - blend) + ((c1 >> 16) & 0xFF) * blend);
+            const uint8_t g = static_cast<uint8_t>(((c0 >> 8) & 0xFF) * (1.0f - blend) + ((c1 >> 8) & 0xFF) * blend);
+            const uint8_t b = static_cast<uint8_t>((c0 & 0xFF) * (1.0f - blend) + (c1 & 0xFF) * blend);
+            const uint32_t color = (static_cast<uint32_t>(r) << 16) |
+                                   (static_cast<uint32_t>(g) << 8) | b;
+            const int16_t y = meterBottom - offset - bandSize;
+            API_COLOR(color);
+            API_VERTEX2F(x, y);
+            API_VERTEX2F(x + meterWidth, y + bandSize);
+        }
+    }
+    API_END();
+}
+
 void cTracker::tracksNumbers()
 {
     if (!tracks->showTrackNames)

@@ -138,6 +138,7 @@ class cTracker : public cDisplayControl
     void selection();
     void drawRowNumbers(uint16_t* rowNumbers, bool showTrackEndLines);
     void tracksNumbers();
+    void drawTrackLevelBars();
 
     void notes();
     void instruments();
@@ -166,6 +167,7 @@ class cTracker : public cDisplayControl
     uint32_t lastFontColor;
 
     uint8_t stepHight;
+    float trackLevelPeaks[8] = {};
 };
 
 #endif

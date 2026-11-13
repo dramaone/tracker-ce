@@ -834,4 +834,8 @@ extern playerEngine instrumentPlayer[8];
 extern uint8_t isBlockedInstrument[48];
 extern uint8_t isBlockedNoteOn[48];
 
+// Pattern Mode note-triggered track meter handoff (audio core -> display).
+extern volatile uint8_t trackMeterTrigger[audioEngine::kVoices];
+extern volatile uint8_t trackMeterLevel[audioEngine::kVoices];
+
 #endif /* SOURCE_MTAUDIOENGINE_H_ */

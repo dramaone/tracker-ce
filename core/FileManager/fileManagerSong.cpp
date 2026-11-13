@@ -4,6 +4,7 @@
 #include "core/interfacePopups.h"
 
 #include "fileManager.h"
+#include <cstring>
 
 // uint8_t patternToLoad = 0;
 
@@ -61,6 +62,125 @@ bool cFileManager::switchNextPatternInSong()
     }
 
     return 0;
+}
+
+
+void cFileManager::setSongBlockLabel(uint8_t patternIdx, uint8_t trackIdx, const char label[4])
+{
+    if (patternIdx == 0 || patternIdx > PATTERN_INDEX_MAX || trackIdx >= kAllTracks)
+    {
+        return;
+    }
+
+    char path[PATCH_SIZE];
+    snprintf(path, sizeof(path), "Workspace/patterns/pattern_%02d.mtp", patternIdx);
+    Sequencer::strPattern* referencePattern = &songTrackCopy[0];
+    if (!readPatternFile(path, referencePattern))
+    {
+        return;
+    }
+
+    const auto& referenceTrack = referencePattern->track[trackIdx];
+
+    // Compare the actual musical fields, not the raw struct bytes. strStep can
+    // contain padding bytes, and those bytes are not copied consistently by
+    // the normal song copy routine. A raw memcmp therefore misses musically
+    // identical blocks (especially older copied blocks).
+    auto tracksMatch = [](const Sequencer::strPattern::strTrack& first,
+                          const Sequencer::strPattern::strTrack& second) -> bool
+    {
+        if (first.length != second.length)
+        {
+            return false;
+        }
+
+        // Only steps inside the track's active length define this block.
+        // Unused steps can contain stale data left over from earlier edits.
+        for (uint16_t stepIdx = 0; stepIdx <= first.length; stepIdx++)
+        {
+            const auto& a = first.step[stepIdx];
+            const auto& b = second.step[stepIdx];
+
+            if (a.note != b.note || a.instrument != b.instrument ||
+                a.volume != b.volume || a.micromove != b.micromove)
+            {
+                return false;
+            }
+
+            for (uint8_t fxIdx = 0; fxIdx < (sizeof(a.fx) / sizeof(a.fx[0])); fxIdx++)
+            {
+                if (a.fx[fxIdx].type != b.fx[fxIdx].type ||
+                    a.fx[fxIdx].value != b.fx[fxIdx].value)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    };
+
+    auto trackHasData = [](const Sequencer::strPattern::strTrack& track) -> bool
+    {
+        for (uint16_t stepIdx = 0; stepIdx <= track.length; stepIdx++)
+        {
+            const auto& step = track.step[stepIdx];
+            if (step.note != Sequencer::STEP_NOTE_EMPTY ||
+                step.instrument >= MIDI_INSTRUMENTS_START_IDX || step.volume >= 0 ||
+                step.micromove >= 0)
+            {
+                return true;
+            }
+
+            for (uint8_t fxIdx = 0; fxIdx < (sizeof(step.fx) / sizeof(step.fx[0])); fxIdx++)
+            {
+                if (step.fx[fxIdx].type != 0)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    };
+
+    if (trackHasData(referenceTrack))
+    {
+        // Only inspect patterns that actually appear in the song, and only the
+        // selected track column. Scanning all 255 pattern files during the Save
+        // button callback can stall the UI (and can match unrelated tracks).
+        bool checkedPatterns[PATTERN_INDEX_MAX + 1] = {};
+        for (uint16_t songPos = 0; songPos < SONG_MAX; songPos++)
+        {
+            const uint8_t candidatePattern = mtProject.song.playlist[songPos];
+            if (candidatePattern == PLAYLIST_EMPTY_SLOT)
+            {
+                break;
+            }
+            if (candidatePattern > PATTERN_INDEX_MAX || checkedPatterns[candidatePattern])
+            {
+                continue;
+            }
+            checkedPatterns[candidatePattern] = true;
+
+            snprintf(path, sizeof(path), "Workspace/patterns/pattern_%02d.mtp", candidatePattern);
+            if (!readPatternFile(path, &songTrackCopy[1]))
+            {
+                continue;
+            }
+
+            const auto& candidate = songTrackCopy[1].track[trackIdx];
+            if (trackHasData(candidate) && tracksMatch(candidate, referenceTrack))
+            {
+                memcpy(songBlockLabels[(candidatePattern - 1) * kAllTracks + trackIdx],
+                       label,
+                       4);
+            }
+        }
+    }
+
+    memcpy(songBlockLabels[(patternIdx - 1) * kAllTracks + trackIdx], label, 4);
+    setProjectStructChanged();
 }
 
 void cFileManager::copySongTracks(char* currentProjectPath,
@@ -128,6 +248,11 @@ void cFileManager::copySongTracks(char* currentProjectPath,
             sequencer.copyStep(
               &srcTrack->step[stepIdx], &destTrack->step[stepIdx], !isSampleTrack(destTrackIdx));
         }
+
+        // A pasted musical block inherits the source block's label as well.
+        memcpy(songBlockLabels[(destPaternIdx - 1) * kAllTracks + destTrackIdx],
+               songBlockLabels[(srcPatternIdx - 1) * kAllTracks + srcTrackIdx],
+               4);
     }
 
     uint8_t destBitmaskIdx = destPaternIdx - 1;

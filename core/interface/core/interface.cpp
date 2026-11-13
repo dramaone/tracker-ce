@@ -221,6 +221,17 @@ void Interface::doStartTasks()
     }
     interfaceGlobals.currentFirmwareBuild = platform->getSystemInfo()->buildId;
 
+    // Show the custom firmware build identifier on the startup splash screen.
+    if (interfaceGlobals.currentFirmwareBuild != nullptr)
+    {
+        strncat(interfaceGlobals.currentFirmwareVersion,
+                " ",
+                sizeof(interfaceGlobals.currentFirmwareVersion) - strlen(interfaceGlobals.currentFirmwareVersion) - 1);
+        strncat(interfaceGlobals.currentFirmwareVersion,
+                interfaceGlobals.currentFirmwareBuild,
+                sizeof(interfaceGlobals.currentFirmwareVersion) - strlen(interfaceGlobals.currentFirmwareVersion) - 1);
+    }
+
     ThemeManager::init(platform);
     refreshThemeAndFontMenuOptions();
 

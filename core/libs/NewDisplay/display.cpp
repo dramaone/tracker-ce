@@ -635,28 +635,53 @@ void cDisplay::step3()
 
     API_VERTEX_FORMAT(0);
 
-    // wczytaj elementy w odwrotnej kolejnosci niz w jakiej byly tworzone
+    // Reserve display-list memory for the on-screen keyboard and its edit field
+    // before lower-priority controls. A crowded screen must not omit text entry.
+    bool includeControl[controlsCount] = {};
+    uint32_t reservedMemory = 0;
+
     for (int8_t i = controlsCount - 1; i >= 0; i--)
     {
         cDisplayControl* p = controlsTable[i];
-        if (p == nullptr)
+        if (p == nullptr || !(p->style & controlStyleShow) || !p->refresh)
         {
             continue;
         }
-        if ((p->style & controlStyleShow) && p->refresh)
-        {
-            uint32_t controlMemoryUsed = p->ramSize;
-            if (controlMemoryUsed + memoryUsed < 8172)
-            {
-                memoryUsed += controlMemoryUsed;
 
-                uint32_t controlRamAddress = controlsRamStartAddress + (i * controlsRamAddressStep);
-                API_CMD_APPEND(controlRamAddress, controlMemoryUsed);
-            }
-            else
+        if (p->id == controlIdKeyboard || p->id == controlIdEdit)
+        {
+            if (p->ramSize + reservedMemory < 8172)
             {
-                break;
+                includeControl[i] = true;
+                reservedMemory += p->ramSize;
             }
+        }
+    }
+
+    // Fill the remaining display-list memory in the normal control order.
+    for (int8_t i = controlsCount - 1; i >= 0; i--)
+    {
+        cDisplayControl* p = controlsTable[i];
+        if (p == nullptr || !(p->style & controlStyleShow) || !p->refresh || includeControl[i])
+        {
+            continue;
+        }
+
+        if (p->ramSize + reservedMemory < 8172)
+        {
+            includeControl[i] = true;
+            reservedMemory += p->ramSize;
+        }
+    }
+
+    // Keep the original append order so control layering remains unchanged.
+    for (int8_t i = controlsCount - 1; i >= 0; i--)
+    {
+        if (includeControl[i])
+        {
+            cDisplayControl* p = controlsTable[i];
+            uint32_t controlRamAddress = controlsRamStartAddress + (i * controlsRamAddressStep);
+            API_CMD_APPEND(controlRamAddress, p->ramSize);
         }
     }
 

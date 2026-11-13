@@ -27,6 +27,9 @@ audioEngine engine;
 uint8_t isBlockedInstrument[48];
 uint8_t isBlockedNoteOn[48];
 
+volatile uint8_t trackMeterTrigger[audioEngine::kVoices] = {};
+volatile uint8_t trackMeterLevel[audioEngine::kVoices] = {};
+
 #ifdef FEATURE_SYNTH
 const audioEngine::SynthParamBoundaries
   audioEngine::synthParamsBoundaries[SynthParam::kSynthParamsCount] = {

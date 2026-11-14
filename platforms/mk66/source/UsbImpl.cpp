@@ -28,8 +28,8 @@ void UsbImpl::update()
             const bool mounted = fileSystem != nullptr && fileSystem->endUsbStorage();
             engine.resumeSdCardAfterUsb(mounted);
             storageOwned = false;
-            storageEjected = false;
         }
+        storageEjected = false;
         return;
     }
 

@@ -316,6 +316,32 @@ void audioEngine::updateSdStream()
     voiceStreamManager.update();
 }
 
+bool audioEngine::prepareSdCardForUsb()
+{
+    // Recording writes must be completed by the user before exposing the
+    // medium to a host computer.
+    if (recorder.isRecordingActive())
+    {
+        return false;
+    }
+
+    playerWavFromSD.stop();
+    sdStream.endCurrentStream();
+    voiceStreamManager.setSuspended(true);
+    return true;
+}
+
+void audioEngine::resumeSdCardAfterUsb(bool mounted)
+{
+    if (!mounted)
+    {
+        return;
+    }
+
+    voiceStreamManager.setSuspended(false);
+    voiceStreamManager.rebindAllInstrumentStreamFiles();
+}
+
 AUDIO_CORE_RAM void audioEngine::updateAudioBuffers(void* left, void* right, int length)
 {
     (void)length;

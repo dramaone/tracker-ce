@@ -154,7 +154,10 @@ bool FileSystemImpl::beginUsbStorage()
         return false;
     }
 
-    nesDir.close();
+    if (nesDir.isOpen())
+    {
+        nesDir.close();
+    }
     closeAllPooledSdFiles();
     SD.stop();
     usbStorageActive = true;

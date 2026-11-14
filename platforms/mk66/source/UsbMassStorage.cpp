@@ -52,11 +52,10 @@ void UsbMassStorage::init()
 
 void UsbMassStorage::setMediaReady(bool ready)
 {
-    if (mediaReady != ready)
-    {
-        mediaReady = ready;
-        resetTransport();
-    }
+    // Media ownership can change immediately after a queued CSW. Preserve the
+    // BOT transport state and queued USB packets; only a USB/BOT reset should
+    // discard an in-flight command.
+    mediaReady = ready;
 }
 
 bool UsbMassStorage::takeEjectRequest()

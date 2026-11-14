@@ -151,6 +151,14 @@ volatile uint8_t usb_reboot_timer = 0;
 // Set by the MSC class-specific control request handler. The main-loop BOT
 // transport consumes this flag and returns to the CBW receive state.
 volatile uint8_t usb_msc_reset_requested = 0;
+
+void usb_msc_stall_endpoints(void)
+{
+	// Endpoint halt is cleared by the standard CLEAR_FEATURE request from the host.
+	volatile uint8_t *reg = &USB0_ENDPT0;
+	reg[MSC_RX_ENDPOINT * 4] |= 0x02;
+	reg[MSC_TX_ENDPOINT * 4] |= 0x02;
+}
 #endif
 
 

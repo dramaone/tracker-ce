@@ -19,6 +19,7 @@ void UsbImpl::reset()
 
 void UsbImpl::update()
 {
+#ifdef USB_MASS_STORAGE
     if (usb_configuration == 0)
     {
         if (storageOwned)
@@ -47,18 +48,24 @@ void UsbImpl::update()
             }
         }
     }
+
     // Once the host owns the medium, keep ownership until USB disconnect.
     // A UI toggle must not remount FatFs underneath an active host session.
-
     massStorage.update();
+#endif
 }
 
 void UsbImpl::setClassState(Usb::ClassType type, bool enable)
 {
+#ifdef USB_MASS_STORAGE
     if (type == Usb::ClassType::kStorage)
     {
         storageEnabled = enable;
     }
+#else
+    (void)type;
+    (void)enable;
+#endif
 }
 
 bool UsbImpl::getClassState(Usb::ClassType type)
@@ -67,10 +74,12 @@ bool UsbImpl::getClassState(Usb::ClassType type)
     {
         return true;
     }
+#ifdef USB_MASS_STORAGE
     if (type == Usb::ClassType::kStorage)
     {
         return storageEnabled;
     }
+#endif
     return false;
 }
 

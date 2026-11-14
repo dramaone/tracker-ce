@@ -3,6 +3,7 @@
 #include "FileSystemImpl.h"
 #include "mtAudioEngine.h"
 #include "usb_dev.h"
+#include "kinetis.h"
 
 extern audioEngine engine;
 
@@ -20,7 +21,8 @@ void UsbImpl::reset()
 void UsbImpl::update()
 {
 #ifdef USB_MASS_STORAGE
-    if (usb_configuration == 0)
+    const bool vbusPresent = (USB0_OTGSTAT & USB_OTGSTAT_SESS_VLD) != 0;
+    if (usb_configuration == 0 || !vbusPresent)
     {
         if (storageOwned)
         {
@@ -85,5 +87,6 @@ bool UsbImpl::getClassState(Usb::ClassType type)
 
 bool UsbImpl::isAttached()
 {
-    return usb_configuration != 0;
+    return usb_configuration != 0 &&
+           (USB0_OTGSTAT & USB_OTGSTAT_SESS_VLD) != 0;
 }

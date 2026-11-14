@@ -89,7 +89,7 @@ pre-build:
 
 post-build: 
 	cp "$(BUILD_DIR)/$(TARGET).axf" "$(BUILD_DIR)/$(TARGET)_$(NOW)_$(TARGET_POSTFIX).axf"
-	$(TOOLCHAIN)objcopy --gap-fill=0xFF -v -O ihex "$(BUILD_DIR)/$(TARGET).axf" "$(BUILD_DIR)/$(TARGET_POSTFIX).ptf" 
+	$(TOOLCHAIN)objcopy --gap-fill=0xFF -v -O ihex "$(BUILD_DIR)/$(TARGET).axf" "$(BUILD_DIR)/$(TARGET)_$(TARGET_POSTFIX).ptf" 
 	$(TOOLCHAIN)objdump -S -C "$(BUILD_DIR)/$(TARGET).axf" > "$(BUILD_DIR)/$(TARGET)_$(NOW)_$(TARGET_POSTFIX).lss" 
 	$(TOOLCHAIN)size "$(BUILD_DIR)/$(TARGET).axf"
 

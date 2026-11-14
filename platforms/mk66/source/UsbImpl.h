@@ -27,6 +27,7 @@ class UsbImpl final : public Usb
     bool storageEnabled = false;
 #endif
     bool storageOwned = false;
+    bool storageEjected = false;
 };
 
 #endif /* USBIMPL_H_ */

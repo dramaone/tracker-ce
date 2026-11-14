@@ -3,7 +3,6 @@
 #include "FileSystemImpl.h"
 #include "mtAudioEngine.h"
 #include "usb_dev.h"
-#include "kinetis.h"
 
 extern audioEngine engine;
 
@@ -21,8 +20,7 @@ void UsbImpl::reset()
 void UsbImpl::update()
 {
 #ifdef USB_MASS_STORAGE
-    const bool vbusPresent = (USB0_OTGSTAT & USB_OTGSTAT_SESS_VLD) != 0;
-    if (usb_configuration == 0 || !vbusPresent)
+    if (usb_configuration == 0)
     {
         if (storageOwned)
         {
@@ -30,11 +28,12 @@ void UsbImpl::update()
             const bool mounted = fileSystem != nullptr && fileSystem->endUsbStorage();
             engine.resumeSdCardAfterUsb(mounted);
             storageOwned = false;
+            storageEjected = false;
         }
         return;
     }
 
-    if (storageEnabled && !storageOwned && fileSystem != nullptr)
+    if (storageEnabled && !storageOwned && !storageEjected && fileSystem != nullptr)
     {
         if (engine.prepareSdCardForUsb())
         {
@@ -51,9 +50,33 @@ void UsbImpl::update()
         }
     }
 
-    // Once the host owns the medium, keep ownership until USB disconnect.
-    // A UI toggle must not remount FatFs underneath an active host session.
     massStorage.update();
+
+    // Windows/macOS issue START STOP UNIT with LOEJ=1, START=0 for safe
+    // removal. Release FatFs only after the successful command status is queued.
+    if (storageOwned && massStorage.takeEjectRequest())
+    {
+        massStorage.setMediaReady(false);
+        const bool mounted = fileSystem->endUsbStorage();
+        engine.resumeSdCardAfterUsb(mounted);
+        storageOwned = false;
+        storageEjected = true;
+    }
+
+    // A host may explicitly load the medium again after ejecting it.
+    if (storageEnabled && storageEjected && !storageOwned && massStorage.takeLoadRequest())
+    {
+        if (engine.prepareSdCardForUsb() && fileSystem->beginUsbStorage())
+        {
+            storageOwned = true;
+            storageEjected = false;
+            massStorage.setMediaReady(true);
+        }
+        else
+        {
+            engine.resumeSdCardAfterUsb(fileSystem->isSdCardInserted());
+        }
+    }
 #endif
 }
 
@@ -87,6 +110,5 @@ bool UsbImpl::getClassState(Usb::ClassType type)
 
 bool UsbImpl::isAttached()
 {
-    return usb_configuration != 0 &&
-           (USB0_OTGSTAT & USB_OTGSTAT_SESS_VLD) != 0;
+    return usb_configuration != 0;
 }

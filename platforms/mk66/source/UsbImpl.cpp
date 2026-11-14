@@ -45,7 +45,7 @@ void UsbImpl::update()
             else
             {
                 // A failed handover must not leave audio streaming suspended.
-                engine.resumeSdCardAfterUsb(fileSystem->isSdCardInserted());
+                resumeSdCardAfterUsbStorage(fileSystem->isSdCardInserted());
             }
         }
     }
@@ -58,7 +58,7 @@ void UsbImpl::update()
     {
         massStorage.setMediaReady(false);
         const bool mounted = fileSystem->endUsbStorage();
-        engine.resumeSdCardAfterUsb(mounted);
+        resumeSdCardAfterUsbStorage(mounted);
         storageOwned = false;
         storageEjected = true;
     }
@@ -66,7 +66,7 @@ void UsbImpl::update()
     // A host may explicitly load the medium again after ejecting it.
     if (storageEnabled && storageEjected && !storageOwned && massStorage.takeLoadRequest())
     {
-        if (engine.prepareSdCardForUsb() && fileSystem->beginUsbStorage())
+        if (prepareSdCardForUsbStorage() && fileSystem->beginUsbStorage())
         {
             storageOwned = true;
             storageEjected = false;
@@ -74,7 +74,7 @@ void UsbImpl::update()
         }
         else
         {
-            engine.resumeSdCardAfterUsb(fileSystem->isSdCardInserted());
+            resumeSdCardAfterUsbStorage(fileSystem->isSdCardInserted());
         }
     }
 #endif

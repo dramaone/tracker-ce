@@ -33,10 +33,18 @@ void UsbImpl::update()
 
     if (storageEnabled && !storageOwned && fileSystem != nullptr)
     {
-        if (engine.prepareSdCardForUsb() && fileSystem->beginUsbStorage())
+        if (engine.prepareSdCardForUsb())
         {
-            storageOwned = true;
-            massStorage.setMediaReady(true);
+            if (fileSystem->beginUsbStorage())
+            {
+                storageOwned = true;
+                massStorage.setMediaReady(true);
+            }
+            else
+            {
+                // A failed handover must not leave audio streaming suspended.
+                engine.resumeSdCardAfterUsb(true);
+            }
         }
     }
     // Once the host owns the medium, keep ownership until USB disconnect.

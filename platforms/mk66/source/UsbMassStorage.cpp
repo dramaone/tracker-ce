@@ -95,6 +95,7 @@ void UsbMassStorage::processCbw()
     {
         // BOT requires reset recovery after a malformed CBW. Do not interpret
         // subsequent OUT data as a new command until the host resets the pipe.
+        usb_msc_stall_endpoints();
         resetTransport();
         return;
     }

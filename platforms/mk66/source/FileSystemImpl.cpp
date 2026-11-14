@@ -424,6 +424,8 @@ bool FileSystemImpl::waitAsyncRead()
 
 bool FileSystemImpl::isAsyncReadBusy()
 {
+    if (usbStorageActive) return false;
+
     return SD_IsAsyncBusy(&g_sd);
 }
 

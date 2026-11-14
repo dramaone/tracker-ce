@@ -343,6 +343,16 @@ void audioEngine::resumeSdCardAfterUsb(bool mounted)
     voiceStreamManager.setSuspended(false);
 }
 
+bool prepareSdCardForUsbStorage()
+{
+    return engine.prepareSdCardForUsb();
+}
+
+void resumeSdCardAfterUsbStorage(bool mounted)
+{
+    engine.resumeSdCardAfterUsb(mounted);
+}
+
 AUDIO_CORE_RAM void audioEngine::updateAudioBuffers(void* left, void* right, int length)
 {
     (void)length;

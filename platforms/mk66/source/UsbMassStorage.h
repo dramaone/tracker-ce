@@ -36,6 +36,7 @@ class UsbMassStorage
     bool mediaReady = false;
     bool commandFailed = false;
     uint8_t cbw[31]{};
+    uint8_t cbwUsed = 0;
     uint8_t csw[13]{};
     uint8_t response[36]{};
     uint32_t tag = 0;

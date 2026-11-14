@@ -333,14 +333,13 @@ bool audioEngine::prepareSdCardForUsb()
 
 void audioEngine::resumeSdCardAfterUsb(bool mounted)
 {
-    if (!mounted)
-    {
-        return;
-    }
-
     // Rebuild file cluster maps while the background scheduler remains
-    // paused, then allow streamed voices to resume.
-    voiceStreamManager.rebindAllInstrumentStreamFiles();
+    // paused. If the card was removed, still release the suspension so a
+    // later normal card-insert flow can recover the audio scheduler.
+    if (mounted)
+    {
+        voiceStreamManager.rebindAllInstrumentStreamFiles();
+    }
     voiceStreamManager.setSuspended(false);
 }
 

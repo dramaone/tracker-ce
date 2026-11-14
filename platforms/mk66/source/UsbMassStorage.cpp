@@ -192,6 +192,8 @@ void UsbMassStorage::prepareCommand()
             dataLength = static_cast<uint32_t>(bytes);
             dataInFromSector = command == 0x28;
             writeCommand = command == 0x2A;
+            if (writeCommand)
+                sectorOffset = 0;
             if (writeCommand && hostReads)
             {
                 failCommand(0x05, 0x24, 0x00);
@@ -235,11 +237,11 @@ void UsbMassStorage::prepareCommand()
     state = dataLength ? State::kDataIn : State::kSendCsw;
 }
 
-void UsbMassStorage::queueInPacket(const uint8_t* data, uint8_t length)
+bool UsbMassStorage::queueInPacket(const uint8_t* data, uint8_t length)
 {
     usb_packet_t* packet = usb_malloc();
     if (packet == nullptr)
-        return;
+        return false;
 
     packet->len = length;
     packet->index = 0;
@@ -247,6 +249,7 @@ void UsbMassStorage::queueInPacket(const uint8_t* data, uint8_t length)
     if (length)
         memcpy(packet->buf, data, length);
     usb_tx(MSC_TX_ENDPOINT, packet);
+    return true;
 }
 
 bool UsbMassStorage::readSector()
@@ -280,9 +283,11 @@ void UsbMassStorage::queueCsw()
     csw[10] = static_cast<uint8_t>(residue >> 16);
     csw[11] = static_cast<uint8_t>(residue >> 24);
     csw[12] = commandFailed ? 1 : 0;
-    queueInPacket(csw, sizeof(csw));
-    state = State::kWaitCbw;
-    cbwUsed = 0;
+    if (queueInPacket(csw, sizeof(csw)))
+    {
+        state = State::kWaitCbw;
+        cbwUsed = 0;
+    }
 }
 
 void UsbMassStorage::update()
@@ -361,7 +366,8 @@ void UsbMassStorage::update()
             memcpy(packet, response + dataOffset, count);
         }
 
-        queueInPacket(packet, count);
+        if (!queueInPacket(packet, count))
+            return;
         dataOffset += count;
         residue -= count;
 
@@ -426,7 +432,7 @@ void UsbMassStorage::setMediaReady(bool) {}
 void UsbMassStorage::resetTransport() {}
 void UsbMassStorage::processCbw() {}
 void UsbMassStorage::prepareCommand() {}
-void UsbMassStorage::queueInPacket(const uint8_t*, uint8_t) {}
+bool UsbMassStorage::queueInPacket(const uint8_t*, uint8_t) { return false; }
 void UsbMassStorage::queueCsw() {}
 void UsbMassStorage::failCommand(uint8_t, uint8_t, uint8_t) {}
 bool UsbMassStorage::readSector() { return false; }

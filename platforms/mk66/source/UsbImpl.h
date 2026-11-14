@@ -22,7 +22,7 @@ class UsbImpl final : public Usb
     FileSystemImpl* fileSystem = nullptr;
     UsbMassStorage massStorage;
 #ifdef USB_MASS_STORAGE
-    bool storageEnabled = true;
+    bool storageEnabled = false;
 #else
     bool storageEnabled = false;
 #endif

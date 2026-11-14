@@ -1,10 +1,10 @@
 #include "UsbImpl.h"
 
 #include "FileSystemImpl.h"
-#include "../../../core/AudioEngine/mtAudioEngine.h"
+../../../core/AudioEngine/UsbStorageAudioBridge.h
 #include "usb_dev.h"
 
-extern audioEngine engine;
+
 
 void UsbImpl::init()
 {
@@ -26,7 +26,7 @@ void UsbImpl::update()
         {
             massStorage.setMediaReady(false);
             const bool mounted = fileSystem != nullptr && fileSystem->endUsbStorage();
-            engine.resumeSdCardAfterUsb(mounted);
+            resumeSdCardAfterUsbStorage(mounted);
             storageOwned = false;
         }
         storageEjected = false;
@@ -35,7 +35,7 @@ void UsbImpl::update()
 
     if (storageEnabled && !storageOwned && !storageEjected && fileSystem != nullptr)
     {
-        if (engine.prepareSdCardForUsb())
+        if (prepareSdCardForUsbStorage())
         {
             if (fileSystem->beginUsbStorage())
             {

@@ -237,6 +237,7 @@ size_t FileSystemImpl::getFileSize(const char* path)
 
 size_t FileSystemImpl::getFileSize(FileHandle fileHandle)
 {
+    if (usbStorageActive) return 0;
     SdFile* file = (SdFile*)fileHandle;
 
     if (!file->isOpen())

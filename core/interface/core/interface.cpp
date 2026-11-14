@@ -460,6 +460,24 @@ bool Interface::setFileTransferMode(bool enable)
     return specialScreenMode == usbStorageScreenMode;
 }
 
+void Interface::onUsbStorageEjected()
+{
+    if (specialScreenMode != usbStorageScreenMode)
+    {
+        return;
+    }
+
+    // The platform has already remounted the card and resumed SD-backed audio.
+    // Finish the UI-side handover without mounting the volume a second time.
+    ip->unblockAllInputs();
+    newFileManager.setWorkspaceSaveSuspended(false);
+    activateInterface();
+
+    Usb* usb = mtInterface.getPlatform()->getUsb();
+    usb->setClassState(Usb::ClassType::kStorage, false);
+    usb->reset();
+}
+
 void Interface::refreshInterfaceControlsColors()
 {
     songTimer.refreshColors();

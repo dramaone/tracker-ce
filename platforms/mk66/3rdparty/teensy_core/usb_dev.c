@@ -365,7 +365,7 @@ static void usb_setup(void)
 		endpoint0_stall();
 		return;
 #ifdef USB_MASS_STORAGE
-	  case 0xA1FE: // MSC_GET_MAX_LUN (class, interface, device-to-host)
+	  case 0xFEA1: // MSC_GET_MAX_LUN (class, interface, device-to-host)
 		if (setup.wIndex != MSC_INTERFACE || setup.wValue != 0 ||
 		    setup.wLength != 1) {
 			endpoint0_stall();
@@ -375,7 +375,7 @@ static void usb_setup(void)
 		data = reply_buffer;
 		datalen = 1;
 		break;
-	  case 0x21FF: // MSC_BULK_ONLY_RESET (class, interface, host-to-device)
+	  case 0xFF21: // MSC_BULK_ONLY_RESET (class, interface, host-to-device)
 		if (setup.wIndex != MSC_INTERFACE || setup.wValue != 0 ||
 		    setup.wLength != 0) {
 			endpoint0_stall();

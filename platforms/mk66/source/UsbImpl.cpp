@@ -44,7 +44,7 @@ void UsbImpl::update()
             else
             {
                 // A failed handover must not leave audio streaming suspended.
-                engine.resumeSdCardAfterUsb(true);
+                engine.resumeSdCardAfterUsb(fileSystem->isSdCardInserted());
             }
         }
     }

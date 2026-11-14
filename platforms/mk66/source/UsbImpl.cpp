@@ -1,7 +1,7 @@
 #include "UsbImpl.h"
 
 #include "FileSystemImpl.h"
-../../../core/AudioEngine/UsbStorageAudioBridge.h
+#include "../../../core/AudioEngine/UsbStorageAudioBridge.h"
 #include "usb_dev.h"
 
 

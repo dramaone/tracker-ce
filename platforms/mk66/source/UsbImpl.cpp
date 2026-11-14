@@ -39,13 +39,8 @@ void UsbImpl::update()
             massStorage.setMediaReady(true);
         }
     }
-    else if (!storageEnabled && storageOwned)
-    {
-        massStorage.setMediaReady(false);
-        const bool mounted = fileSystem->endUsbStorage();
-        engine.resumeSdCardAfterUsb(mounted);
-        storageOwned = false;
-    }
+    // Once the host owns the medium, keep ownership until USB disconnect.
+    // A UI toggle must not remount FatFs underneath an active host session.
 
     massStorage.update();
 }

@@ -370,7 +370,7 @@ let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
 
 #define EP0_SIZE    			64
 #ifdef USB_MASS_STORAGE
-#define NUM_ENDPOINTS         	9
+#define NUM_ENDPOINTS         	10
 #define NUM_INTERFACE   		5
 #define MSC_INTERFACE           4
 #define MSC_RX_ENDPOINT         8

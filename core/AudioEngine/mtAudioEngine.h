@@ -192,6 +192,9 @@ class audioEngine
     ExportQueues* getExportQueues();
     MixerAndFxs<kVoices>* getMixerAndFx();
     AudioPlaySdWav* getSdPlayer();
+    // Stop all SD-backed audio activity before another USB host owns the card.
+    bool prepareSdCardForUsb();
+    void resumeSdCardAfterUsb(bool mounted);
 
     friend class playerEngine;
 

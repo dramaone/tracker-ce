@@ -42,6 +42,18 @@ static void freeSdFile(SdFile* f)
     }
 }
 
+static void closeAllPooledSdFiles()
+{
+    for (size_t i = 0; i < kSdFilePoolSize; ++i)
+    {
+        if (s_sdFilePoolUsed[i])
+        {
+            s_sdFilePool[i].close();
+            s_sdFilePoolUsed[i] = false;
+        }
+    }
+}
+
 void FileSystemImpl::init(int sdDetectPin, Timer* timer)
 {
     this->sdDetectPin = sdDetectPin;
@@ -57,6 +69,11 @@ void FileSystemImpl::init(int sdDetectPin, Timer* timer)
 
 void FileSystemImpl::update(bool forcedUpdate)
 {
+    if (usbStorageActive)
+    {
+        return;
+    }
+
     bool cardInsertState = !digitalRead(sdDetectPin);
 
     if (cardInsertState == lastCardInsertState)
@@ -114,28 +131,74 @@ void FileSystemImpl::setMountEventCallback(CardStateChangeCallback funct)
 
 bool FileSystemImpl::remount()
 {
-    // Nothing else writes to the card here: this platform has no USB storage
-    // mode.
-    return false;
+    if (usbStorageActive)
+    {
+        return false;
+    }
+    return cardInitializedSuccessfully && SD.mount();
+}
+
+bool FileSystemImpl::beginUsbStorage()
+{
+    if (usbStorageActive || !lastCardInsertState || !cardInitializedSuccessfully)
+    {
+        return false;
+    }
+
+    // Finish all card activity before unmounting. Audio stream ownership is
+    // suspended by audioEngine before this method is called.
+    if (!waitAsyncRead())
+    {
+        return false;
+    }
+
+    nesDir.close();
+    closeAllPooledSdFiles();
+    SD.stop();
+    usbStorageActive = true;
+    return true;
+}
+
+bool FileSystemImpl::endUsbStorage()
+{
+    if (!usbStorageActive)
+    {
+        return false;
+    }
+
+    // USB must have stopped issuing block commands before this is called.
+    const bool mounted = SD.mount();
+    usbStorageActive = false;
+    cardInitializedSuccessfully = mounted;
+
+    if (mounted && cardStateChangeCallback != nullptr)
+    {
+        cardStateChangeCallback(true);
+    }
+    return mounted;
 }
 
 bool FileSystemImpl::exists(const char* path)
 {
+    if (usbStorageActive) return false;
     return SD.exists(path);
 }
 
 bool FileSystemImpl::rename(const char* oldPath, const char* newPath)
 {
+    if (usbStorageActive) return false;
     return SD.rename(oldPath, newPath);
 }
 
 bool FileSystemImpl::mkdir(uint8_t hidden, const char* path, bool pFlag)
 {
+    if (usbStorageActive) return false;
     return SD.mkdir(hidden, path, pFlag);
 }
 
 bool FileSystemImpl::remove(const char* path)
 {
+    if (usbStorageActive) return false;
     return SD.remove(path);
 }
 
@@ -188,6 +251,7 @@ std::tuple<bool, FileSystemImpl::FileHandle> FileSystemImpl::openFile(const char
                                                                       FileOpenMode openMode,
                                                                       FileHandle* fileHandle)
 {
+    if (usbStorageActive) return std::make_tuple(false, nullptr);
 
     SdFile* file;
     if (fileHandle == nullptr) // no input fileHandle

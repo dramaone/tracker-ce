@@ -15,6 +15,11 @@ class FileSystemImpl final : public FileSystem
     virtual void setMountEventCallback(CardStateChangeCallback funct) override;
     virtual bool remount() override;
 
+    // Exclusive ownership handover for USB mass storage.
+    bool beginUsbStorage();
+    bool endUsbStorage();
+    bool isUsbStorageActive() const { return usbStorageActive; }
+
     virtual bool exists(const char* path) override;
     virtual bool rename(const char* oldPath, const char* newPath) override;
     // todo: hidden to bool
@@ -96,6 +101,7 @@ class FileSystemImpl final : public FileSystem
     Timer* timer;
     bool lastCardInsertState;
     bool cardInitializedSuccessfully;
+    bool usbStorageActive = false;
     uint32_t cardInsertTime;
 };
 

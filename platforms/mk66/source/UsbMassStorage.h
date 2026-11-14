@@ -13,6 +13,8 @@ class UsbMassStorage
     void update();
     void setMediaReady(bool ready);
     bool isMediaReady() const { return mediaReady; }
+    bool takeEjectRequest();
+    bool takeLoadRequest();
 
   private:
     enum class State : uint8_t
@@ -53,6 +55,10 @@ class UsbMassStorage
     uint8_t command = 0;
     bool dataInFromSector = false;
     bool writeCommand = false;
+    bool ejectPending = false;
+    bool ejectReady = false;
+    bool loadPending = false;
+    bool loadReady = false;
     uint8_t sectorBuffer[512] __attribute__((aligned(32))){};
 };
 

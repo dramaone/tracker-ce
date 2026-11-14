@@ -63,6 +63,8 @@ class Interface
     void handleFileTransferMode(uint8_t state);
     // Enters or leaves USB storage mode without the UI; returns the resulting state.
     bool setFileTransferMode(bool enable);
+    // Called after the USB host safely ejects the SD card and the platform remounts it.
+    void onUsbStorageEjected();
 
     void refreshInterfaceControlsColors();
 

@@ -154,6 +154,8 @@ class Synth;
 class cFileManager
 {
   public:
+    // Per-pattern/track labels, stored separately to preserve project-file compatibility.
+    char songBlockLabels[SONG_MAX * kAllTracks][4] = {};
     void init(FileSystem* fileSystem, Synth* synth, bool stereoSampleMode);
     void update();
     void setCrcCalculator(CrcCalculator* crcCalculator);
@@ -306,6 +308,7 @@ class cFileManager
     std::optional<int> getPatternPosInSong(uint8_t patternToSearch);
     void setSongPos(uint8_t pos);
     bool switchNextPatternInSong();
+    void setSongBlockLabel(uint8_t patternIdx, uint8_t trackIdx, const char label[4]);
     void copySongTracks(char* currentProjectPath,
                         uint8_t srcPatternIdx,
                         uint8_t destPatternIdx,

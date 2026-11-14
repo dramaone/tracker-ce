@@ -29,6 +29,7 @@ class SdCard
 {
   public:
     bool init();
+    bool mount();
     void stop();
     void pinsInit();
 

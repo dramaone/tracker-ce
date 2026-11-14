@@ -147,6 +147,20 @@ uint8_t usb_rx_memory_needed = 0;
 volatile uint8_t usb_configuration = 0;
 volatile uint8_t usb_reboot_timer = 0;
 
+#ifdef USB_MASS_STORAGE
+// Set by the MSC class-specific control request handler. The main-loop BOT
+// transport consumes this flag and returns to the CBW receive state.
+volatile uint8_t usb_msc_reset_requested = 0;
+
+void usb_msc_stall_endpoints(void)
+{
+	// Endpoint halt is cleared by the standard CLEAR_FEATURE request from the host.
+	volatile uint8_t *reg = &USB0_ENDPT0;
+	reg[MSC_RX_ENDPOINT * 4] |= 0x02;
+	reg[MSC_TX_ENDPOINT * 4] |= 0x02;
+}
+#endif
+
 
 static void endpoint0_stall(void)
 {
@@ -189,6 +203,9 @@ static void usb_setup(void)
 	  case 0x0900: // SET_CONFIGURATION
 		//serial_print("configure\n");
 		usb_configuration = setup.wValue;
+#ifdef USB_MASS_STORAGE
+		usb_msc_reset_requested = 1;
+#endif
 		reg = &USB0_ENDPT1;
 		cfg = usb_endpoint_config_table;
 		// clear all BDT entries, free any allocated memory...
@@ -355,6 +372,27 @@ static void usb_setup(void)
 		//serial_print("desc: not found\n");
 		endpoint0_stall();
 		return;
+#ifdef USB_MASS_STORAGE
+	  case 0xFEA1: // MSC_GET_MAX_LUN (class, interface, device-to-host)
+		if (setup.wIndex != MSC_INTERFACE || setup.wValue != 0 ||
+		    setup.wLength != 1) {
+			endpoint0_stall();
+			return;
+		}
+		reply_buffer[0] = 0; // single logical unit
+		data = reply_buffer;
+		datalen = 1;
+		break;
+	  case 0xFF21: // MSC_BULK_ONLY_RESET (class, interface, host-to-device)
+		if (setup.wIndex != MSC_INTERFACE || setup.wValue != 0 ||
+		    setup.wLength != 0) {
+			endpoint0_stall();
+			return;
+		}
+		usb_msc_reset_requested = 1;
+		break;
+#endif
+
 #if defined(CDC_STATUS_INTERFACE)
 	  case 0x2221: // CDC_SET_CONTROL_LINE_STATE
 		usb_cdc_line_rtsdtr_millis = systick_millis_count;
@@ -1047,6 +1085,13 @@ void usb_isr(void)
 
 	if (status & USB_ISTAT_USBRST /* 01 */ ) {
 		//serial_print("reset\n");
+
+		// A bus reset returns the device to the Address state. Configuration
+		// and the MSC BOT transport must be re-established by the host.
+		usb_configuration = 0;
+#ifdef USB_MASS_STORAGE
+		usb_msc_reset_requested = 1;
+#endif
 
 		// initialize BDT toggle bits
 		USB0_CTL = USB_CTL_ODDRST;

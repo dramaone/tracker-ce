@@ -27,6 +27,9 @@ audioEngine engine;
 uint8_t isBlockedInstrument[48];
 uint8_t isBlockedNoteOn[48];
 
+volatile uint8_t trackMeterTrigger[audioEngine::kVoices] = {};
+volatile uint8_t trackMeterLevel[audioEngine::kVoices] = {};
+
 #ifdef FEATURE_SYNTH
 const audioEngine::SynthParamBoundaries
   audioEngine::synthParamsBoundaries[SynthParam::kSynthParamsCount] = {
@@ -311,6 +314,43 @@ void audioEngine::updateSdStream()
 {
     sdStream.update();
     voiceStreamManager.update();
+}
+
+bool audioEngine::prepareSdCardForUsb()
+{
+    // Recording writes must be completed by the user before exposing the
+    // medium to a host computer.
+    if (recorder.isRecordingActive())
+    {
+        return false;
+    }
+
+    playerWavFromSD.stop();
+    sdStream.endCurrentStream();
+    voiceStreamManager.setSuspended(true);
+    return true;
+}
+
+void audioEngine::resumeSdCardAfterUsb(bool mounted)
+{
+    // Rebuild file cluster maps while the background scheduler remains
+    // paused. If the card was removed, still release the suspension so a
+    // later normal card-insert flow can recover the audio scheduler.
+    if (mounted)
+    {
+        voiceStreamManager.rebindAllInstrumentStreamFiles();
+    }
+    voiceStreamManager.setSuspended(false);
+}
+
+bool prepareSdCardForUsbStorage()
+{
+    return engine.prepareSdCardForUsb();
+}
+
+void resumeSdCardAfterUsbStorage(bool mounted)
+{
+    engine.resumeSdCardAfterUsb(mounted);
 }
 
 AUDIO_CORE_RAM void audioEngine::updateAudioBuffers(void* left, void* right, int length)

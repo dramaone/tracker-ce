@@ -57,6 +57,10 @@ void usb_tx(uint32_t endpoint, usb_packet_t *packet);
 void usb_tx_isochronous(uint32_t endpoint, void *data, uint32_t len);
 
 extern volatile uint8_t usb_configuration;
+#ifdef USB_MASS_STORAGE
+extern volatile uint8_t usb_msc_reset_requested;
+extern void usb_msc_stall_endpoints(void);
+#endif
 
 extern uint16_t usb_rx_byte_count_data[NUM_ENDPOINTS];
 static inline uint32_t usb_rx_byte_count(uint32_t endpoint) __attribute__((always_inline));

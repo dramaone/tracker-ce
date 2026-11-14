@@ -42,6 +42,18 @@ static void freeSdFile(SdFile* f)
     }
 }
 
+static void closeAllPooledSdFiles()
+{
+    for (size_t i = 0; i < kSdFilePoolSize; ++i)
+    {
+        if (s_sdFilePoolUsed[i])
+        {
+            s_sdFilePool[i].close();
+            s_sdFilePoolUsed[i] = false;
+        }
+    }
+}
+
 void FileSystemImpl::init(int sdDetectPin, Timer* timer)
 {
     this->sdDetectPin = sdDetectPin;
@@ -57,6 +69,11 @@ void FileSystemImpl::init(int sdDetectPin, Timer* timer)
 
 void FileSystemImpl::update(bool forcedUpdate)
 {
+    if (usbStorageActive)
+    {
+        return;
+    }
+
     bool cardInsertState = !digitalRead(sdDetectPin);
 
     if (cardInsertState == lastCardInsertState)
@@ -103,6 +120,8 @@ void FileSystemImpl::update(bool forcedUpdate)
 
 bool FileSystemImpl::isSdCardInserted()
 {
+    if (usbStorageActive) return false;
+
     update();
     return lastCardInsertState && cardInitializedSuccessfully;
 }
@@ -114,43 +133,98 @@ void FileSystemImpl::setMountEventCallback(CardStateChangeCallback funct)
 
 bool FileSystemImpl::remount()
 {
-    // Nothing else writes to the card here: this platform has no USB storage
-    // mode.
-    return false;
+    if (usbStorageActive)
+    {
+        return false;
+    }
+    return cardInitializedSuccessfully && SD.mount();
+}
+
+bool FileSystemImpl::beginUsbStorage()
+{
+    if (usbStorageActive || !lastCardInsertState || !cardInitializedSuccessfully)
+    {
+        return false;
+    }
+
+    // Finish all card activity before unmounting. Audio stream ownership is
+    // suspended by audioEngine before this method is called.
+    if (!waitAsyncRead())
+    {
+        return false;
+    }
+
+    if (nesDir.isOpen())
+    {
+        nesDir.close();
+    }
+    closeAllPooledSdFiles();
+    SD.stop();
+    usbStorageActive = true;
+    return true;
+}
+
+bool FileSystemImpl::endUsbStorage()
+{
+    if (!usbStorageActive)
+    {
+        return false;
+    }
+
+    // USB must have stopped issuing block commands before this is called.
+    const bool mounted = SD.mount();
+    usbStorageActive = false;
+    cardInitializedSuccessfully = mounted;
+
+    if (mounted && cardStateChangeCallback != nullptr)
+    {
+        cardStateChangeCallback(true);
+    }
+    return mounted;
 }
 
 bool FileSystemImpl::exists(const char* path)
 {
+    if (usbStorageActive) return false;
     return SD.exists(path);
 }
 
 bool FileSystemImpl::rename(const char* oldPath, const char* newPath)
 {
+    if (usbStorageActive) return false;
     return SD.rename(oldPath, newPath);
 }
 
 bool FileSystemImpl::mkdir(uint8_t hidden, const char* path, bool pFlag)
 {
+    if (usbStorageActive) return false;
     return SD.mkdir(hidden, path, pFlag);
 }
 
 bool FileSystemImpl::remove(const char* path)
 {
+    if (usbStorageActive) return false;
     return SD.remove(path);
 }
 
 bool FileSystemImpl::removeDirWithFiles(const char* path)
 {
+    if (usbStorageActive) return false;
+
     return SD.removeDirWithFiles(path);
 }
 
 bool FileSystemImpl::removeOnlyDirFiles(const char* path)
 {
+    if (usbStorageActive) return false;
+
     return SD.removeOnlyDirFiles(path);
 }
 
 size_t FileSystemImpl::getFileSize(const char* path)
 {
+    if (usbStorageActive) return 0;
+
     SdFile file;
 
     if (!file.open(path, FA_READ))
@@ -166,6 +240,7 @@ size_t FileSystemImpl::getFileSize(const char* path)
 
 size_t FileSystemImpl::getFileSize(FileHandle fileHandle)
 {
+    if (usbStorageActive) return 0;
     SdFile* file = (SdFile*)fileHandle;
 
     if (!file->isOpen())
@@ -179,6 +254,8 @@ size_t FileSystemImpl::getFileSize(FileHandle fileHandle)
 
 size_t FileSystemImpl::getFileAvailable(FileHandle fileHandle)
 {
+    if (usbStorageActive) return 0;
+
     assert(fileHandle);
     SdFile* file = (SdFile*)fileHandle;
     return file->available();
@@ -188,6 +265,7 @@ std::tuple<bool, FileSystemImpl::FileHandle> FileSystemImpl::openFile(const char
                                                                       FileOpenMode openMode,
                                                                       FileHandle* fileHandle)
 {
+    if (usbStorageActive) return std::make_tuple(false, nullptr);
 
     SdFile* file;
     if (fileHandle == nullptr) // no input fileHandle
@@ -243,6 +321,8 @@ std::tuple<bool, FileSystemImpl::FileHandle> FileSystemImpl::openFile(const char
 
 bool FileSystemImpl::seekFileCur(int offset, FileHandle fileHandle)
 {
+    if (usbStorageActive) return false;
+
     assert(fileHandle != nullptr);
     SdFile* file = (SdFile*)fileHandle;
 
@@ -258,6 +338,8 @@ bool FileSystemImpl::seekFileCur(int offset, FileHandle fileHandle)
 
 bool FileSystemImpl::seekFile(uint32_t pos, FileHandle fileHandle)
 {
+    if (usbStorageActive) return false;
+
     assert(fileHandle != nullptr);
     SdFile* file = (SdFile*)fileHandle;
 
@@ -268,6 +350,8 @@ bool FileSystemImpl::seekFile(uint32_t pos, FileHandle fileHandle)
 
 void FileSystemImpl::closeFile(FileHandle fileHandle, bool deleteOnClose)
 {
+    if (usbStorageActive) return;
+
     if (fileHandle == nullptr)
     {
         return;
@@ -284,6 +368,8 @@ void FileSystemImpl::closeFile(FileHandle fileHandle, bool deleteOnClose)
 
 bool FileSystemImpl::isFileOpen(FileHandle fileHandle)
 {
+    if (usbStorageActive) return false;
+
     if (fileHandle == nullptr)
     {
         return false;
@@ -300,6 +386,8 @@ bool FileSystemImpl::enableFastSeek(FileHandle fileHandle,
                                     uint32_t* outDatabaseSector,
                                     uint32_t* outSectorsPerCluster)
 {
+    if (usbStorageActive) return false;
+
     if (fileHandle == nullptr)
     {
         return false;
@@ -315,26 +403,36 @@ bool FileSystemImpl::enableFastSeek(FileHandle fileHandle,
 
 bool FileSystemImpl::readSectorsAsync(uint8_t* buffer, uint32_t startSector, uint32_t sectorCount)
 {
+    if (usbStorageActive) return false;
+
     return SD_ReadBlocksAsync(&g_sd, buffer, startSector, sectorCount) == kStatus_Success;
 }
 
 bool FileSystemImpl::pollAsyncRead(bool* outSuccess)
 {
+    if (usbStorageActive) return false;
+
     return SD_PollAsyncRead(&g_sd, outSuccess);
 }
 
 bool FileSystemImpl::waitAsyncRead()
 {
+    if (usbStorageActive) return true;
+
     return SD_WaitAsyncRead(&g_sd) == kStatus_Success;
 }
 
 bool FileSystemImpl::isAsyncReadBusy()
 {
+    if (usbStorageActive) return false;
+
     return SD_IsAsyncBusy(&g_sd);
 }
 
 void FileSystemImpl::endFile(FileHandle fileHandle)
 {
+    if (usbStorageActive) return;
+
     assert(fileHandle != nullptr);
     SdFile* file = (SdFile*)fileHandle;
 
@@ -343,6 +441,8 @@ void FileSystemImpl::endFile(FileHandle fileHandle)
 
 int32_t FileSystemImpl::readFile(void* destBuf, size_t destLen, FileHandle fileHandle)
 {
+    if (usbStorageActive) return -1;
+
     assert(fileHandle != nullptr);
     SdFile* file = (SdFile*)fileHandle;
 
@@ -353,6 +453,8 @@ int32_t FileSystemImpl::readFile(void* destBuf, size_t destLen, FileHandle fileH
 
 int32_t FileSystemImpl::writeFile(const void* data, size_t dataLen, FileHandle fileHandle)
 {
+    if (usbStorageActive) return -1;
+
     assert(fileHandle != nullptr);
     SdFile* file = (SdFile*)fileHandle;
 
@@ -366,6 +468,8 @@ int FileSystemImpl::createInstrumentsList(const char* path,
                                           uint8_t list_length,
                                           uint32_t* sizeOut)
 {
+    if (usbStorageActive) return 0;
+
     SdDir dir;
     int instrumentsFound = 0;
     if (dir.open(path))
@@ -383,6 +487,8 @@ int FileSystemImpl::createInstrumentsList(const char* path,
 
 int FileSystemImpl::countContainedFiles(const char* path)
 {
+    if (usbStorageActive) return 0;
+
     SdDir dir;
     dir.open(path);
 
@@ -403,6 +509,8 @@ int FileSystemImpl::createFilesList(const char* path,
                                     uint16_t max_files_in_subdir,
                                     enListFileFilter folderSizeFilter)
 {
+    if (usbStorageActive) return 0;
+
     SdDir dir;
 
     if (!dir.open(path, O_READ))
@@ -432,6 +540,8 @@ void FileSystemImpl::listDirContents(const char* dirPath,
                                      int& count,
                                      char** fileList)
 {
+    if (usbStorageActive) return;
+
     assert(count != 0);
     assert(fileList != nullptr);
 
@@ -539,6 +649,8 @@ void FileSystemImpl::listDirContents(const char* dirPath,
 
 int FileSystemImpl::readNbFiles(const char* romPath)
 {
+    if (usbStorageActive) return 0;
+
     static constexpr int MAX_FILENAME_SIZE = 28;
 
     int totalFiles = 0;
@@ -582,12 +694,16 @@ int FileSystemImpl::readNbFiles(const char* romPath)
 
 bool FileSystemImpl::nesDir_open(const char* path)
 {
+    if (usbStorageActive) return false;
+
     nesDir.close();
     return nesDir.open(path);
 }
 
 bool FileSystemImpl::nesDir_readItem(char* path, uint8_t* isDir, uint8_t* isHid, uint32_t* size)
 {
+    if (usbStorageActive) return false;
+
     return nesDir.readItem(path, isDir, isHid, size);
 }
 

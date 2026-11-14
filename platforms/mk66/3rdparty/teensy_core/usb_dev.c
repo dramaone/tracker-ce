@@ -1086,6 +1086,13 @@ void usb_isr(void)
 	if (status & USB_ISTAT_USBRST /* 01 */ ) {
 		//serial_print("reset\n");
 
+		// A bus reset returns the device to the Address state. Configuration
+		// and the MSC BOT transport must be re-established by the host.
+		usb_configuration = 0;
+#ifdef USB_MASS_STORAGE
+		usb_msc_reset_requested = 1;
+#endif
+
 		// initialize BDT toggle bits
 		USB0_CTL = USB_CTL_ODDRST;
 		ep0_tx_bdt_bank = 0;

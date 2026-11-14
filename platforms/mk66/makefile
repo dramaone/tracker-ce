@@ -41,7 +41,7 @@ NOW := $(shell date +"%Y%m%d_%H%M")
 INCLUDES=-I./source -I./config -I./3rdparty/Audio -I./3rdparty/Encoder -I./3rdparty/Buttons -I./3rdparty/BlinkLed -I./3rdparty/radio -I./3rdparty/FastCRC -I./3rdparty/MIDI -I./3rdparty/I2C -I./3rdparty/Leds -I./3rdparty/Battery -I./3rdparty/teensy_core -I./3rdparty/SDRAM -I./3rdparty/Snooze -I./3rdparty/SPI -I./3rdparty/FT812 -I./3rdparty/EEPROM -I./3rdparty/SD -I./3rdparty/SD/drivers -I./3rdparty/SD/fatfs/source -I./3rdparty/SD/fatfs/source/fsl_sd_disk -I./3rdparty/SD/fatfs/source/fsl_ram_disk -I./3rdparty/SD/sdmmc/inc -I${TRACKER_DIR}/include -I${TRACKER_DIR}/interface -I${TRACKER_DIR}/source -I${TRACKER_DIR}/libs/NewDisplay -I${TRACKER_DIR}/libs/ElapsedMillis
 LIBS=-lTracker -larm_cortexM4lf_math
 
-DEFINES=-D__NEWLIB__ -D__MK66FX1M0__ -DF_CPU=180000000 -DUSB_MIDI -DTEENSYDUINO=142 -DARDUINO=10805 -DLAYOUT_US_ENGLISH -DCPU_MK66FX1M0VMD18 -DBUILD_ID=\\\"$(BUILD_ID_STR)\\\"
+DEFINES=-D__NEWLIB__ -D__MK66FX1M0__ -DF_CPU=180000000 -DUSB_MIDI -DTEENSYDUINO=142 -DARDUINO=10805 -DLAYOUT_US_ENGLISH -DCPU_MK66FX1M0VMD18 -DBUILD_ID=\"$(BUILD_ID_STR)\"
 
 COMPILER_OPTIONS=-fno-common -g -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -fstack-usage -specs=nano.specs -Wall -Wextra -c -ffunction-sections -fdata-sections -ffreestanding -fno-builtin 
 ifdef DEBUG

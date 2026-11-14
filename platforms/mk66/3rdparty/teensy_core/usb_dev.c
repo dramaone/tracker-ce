@@ -147,6 +147,12 @@ uint8_t usb_rx_memory_needed = 0;
 volatile uint8_t usb_configuration = 0;
 volatile uint8_t usb_reboot_timer = 0;
 
+#ifdef USB_MASS_STORAGE
+// Set by the MSC class-specific control request handler. The main-loop BOT
+// transport consumes this flag and returns to the CBW receive state.
+volatile uint8_t usb_msc_reset_requested = 0;
+#endif
+
 
 static void endpoint0_stall(void)
 {
@@ -189,6 +195,9 @@ static void usb_setup(void)
 	  case 0x0900: // SET_CONFIGURATION
 		//serial_print("configure\n");
 		usb_configuration = setup.wValue;
+#ifdef USB_MASS_STORAGE
+		usb_msc_reset_requested = 1;
+#endif
 		reg = &USB0_ENDPT1;
 		cfg = usb_endpoint_config_table;
 		// clear all BDT entries, free any allocated memory...
@@ -355,6 +364,27 @@ static void usb_setup(void)
 		//serial_print("desc: not found\n");
 		endpoint0_stall();
 		return;
+#ifdef USB_MASS_STORAGE
+	  case 0xA1FE: // MSC_GET_MAX_LUN (class, interface, device-to-host)
+		if (setup.wIndex != MSC_INTERFACE || setup.wValue != 0 ||
+		    setup.wLength != 1) {
+			endpoint0_stall();
+			return;
+		}
+		reply_buffer[0] = 0; // single logical unit
+		data = reply_buffer;
+		datalen = 1;
+		break;
+	  case 0x21FF: // MSC_BULK_ONLY_RESET (class, interface, host-to-device)
+		if (setup.wIndex != MSC_INTERFACE || setup.wValue != 0 ||
+		    setup.wLength != 0) {
+			endpoint0_stall();
+			return;
+		}
+		usb_msc_reset_requested = 1;
+		break;
+#endif
+
 #if defined(CDC_STATUS_INTERFACE)
 	  case 0x2221: // CDC_SET_CONTROL_LINE_STATE
 		usb_cdc_line_rtsdtr_millis = systick_millis_count;

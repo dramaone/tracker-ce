@@ -59,6 +59,20 @@ void UsbMassStorage::setMediaReady(bool ready)
     }
 }
 
+bool UsbMassStorage::takeEjectRequest()
+{
+    const bool requested = ejectReady;
+    ejectReady = false;
+    return requested;
+}
+
+bool UsbMassStorage::takeLoadRequest()
+{
+    const bool requested = loadReady;
+    loadReady = false;
+    return requested;
+}
+
 void UsbMassStorage::resetTransport()
 {
     state = State::kWaitCbw;
@@ -75,6 +89,10 @@ void UsbMassStorage::resetTransport()
     command = 0;
     dataInFromSector = false;
     writeCommand = false;
+    ejectPending = false;
+    ejectReady = false;
+    loadPending = false;
+    loadReady = false;
 }
 
 void UsbMassStorage::failCommand(uint8_t key, uint8_t asc, uint8_t ascq)
@@ -217,6 +235,17 @@ void UsbMassStorage::prepareCommand()
             break;
 
         case 0x1B: // START STOP UNIT
+        {
+            const bool loadEject = (cdb[4] & 0x02) != 0;
+            const bool start = (cdb[4] & 0x01) != 0;
+            if (loadEject && !start && mediaReady)
+                ejectPending = true;
+            else if (loadEject && start && !mediaReady)
+                loadPending = true;
+            state = State::kSendCsw;
+            return;
+        }
+
         case 0x1E: // PREVENT/ALLOW MEDIUM REMOVAL
         case 0x35: // SYNCHRONIZE CACHE (10)
             state = State::kSendCsw;
@@ -286,6 +315,18 @@ void UsbMassStorage::queueCsw()
     csw[12] = commandFailed ? 1 : 0;
     if (queueInPacket(csw, sizeof(csw)))
     {
+        // Report eject/load to the platform only after the corresponding CSW
+        // has been queued on the USB IN pipe.
+        if (ejectPending)
+        {
+            ejectReady = true;
+            ejectPending = false;
+        }
+        if (loadPending)
+        {
+            loadReady = true;
+            loadPending = false;
+        }
         state = State::kWaitCbw;
         cbwUsed = 0;
     }
@@ -430,6 +471,8 @@ void UsbMassStorage::update()
 void UsbMassStorage::init() {}
 void UsbMassStorage::update() {}
 void UsbMassStorage::setMediaReady(bool) {}
+bool UsbMassStorage::takeEjectRequest() { return false; }
+bool UsbMassStorage::takeLoadRequest() { return false; }
 void UsbMassStorage::resetTransport() {}
 void UsbMassStorage::processCbw() {}
 void UsbMassStorage::prepareCommand() {}

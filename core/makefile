@@ -51,6 +51,9 @@ POLYSYNTH_DIR ?= ../synth
 DEFINES += $(FW_VERSION_DEFINES) $(CUSTOM_DEFINES)
 
 ifeq ($(PLATFORM), MK66)
+ifeq ($(PRODUCT), ORIGINAL)
+DEFINES+=-DUSB_MASS_STORAGE
+endif
 COMPILER_OPTIONS+=-mcpu=cortex-m4 -mfpu=fpv4-sp-d16 
 else ifeq ($(PLATFORM), IMX)
 COMPILER_OPTIONS+=-mcpu=cortex-m7 -mfpu=fpv5-sp-d16 -mfp16-format=ieee

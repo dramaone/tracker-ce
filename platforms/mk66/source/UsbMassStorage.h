@@ -26,7 +26,7 @@ class UsbMassStorage
     void resetTransport();
     void processCbw();
     void prepareCommand();
-    void queueInPacket(const uint8_t* data, uint8_t length);
+    bool queueInPacket(const uint8_t* data, uint8_t length);
     void queueCsw();
     void failCommand(uint8_t senseKey, uint8_t asc, uint8_t ascq);
     bool readSector();

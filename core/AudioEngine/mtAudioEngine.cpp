@@ -338,8 +338,10 @@ void audioEngine::resumeSdCardAfterUsb(bool mounted)
         return;
     }
 
-    voiceStreamManager.setSuspended(false);
+    // Rebuild file cluster maps while the background scheduler remains
+    // paused, then allow streamed voices to resume.
     voiceStreamManager.rebindAllInstrumentStreamFiles();
+    voiceStreamManager.setSuspended(false);
 }
 
 AUDIO_CORE_RAM void audioEngine::updateAudioBuffers(void* left, void* right, int length)

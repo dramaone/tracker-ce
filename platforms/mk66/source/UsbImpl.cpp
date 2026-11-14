@@ -1,6 +1,7 @@
 #include "UsbImpl.h"
 
 #include "FileSystemImpl.h"
+#include "core/interface.h"
 #include "../../../core/AudioEngine/UsbStorageAudioBridge.h"
 #include "usb_dev.h"
 
@@ -61,6 +62,7 @@ void UsbImpl::update()
         resumeSdCardAfterUsbStorage(mounted);
         storageOwned = false;
         storageEjected = true;
+        mtInterface.onUsbStorageEjected();
     }
 
     // A host may explicitly load the medium again after ejecting it.

@@ -369,9 +369,18 @@ let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
 #define MANUFACTURER_NAME_LEN 7
 
 #define EP0_SIZE    			64
+#ifdef USB_MASS_STORAGE
+#define NUM_ENDPOINTS         	9
+#define NUM_INTERFACE   		5
+#define MSC_INTERFACE           4
+#define MSC_RX_ENDPOINT         8
+#define MSC_TX_ENDPOINT         9
+#define MSC_ENDPOINT_SIZE       64
+#else
 #define NUM_ENDPOINTS         	7
-#define NUM_USB_BUFFERS 		30
 #define NUM_INTERFACE   		4
+#endif
+#define NUM_USB_BUFFERS 		30
 
 #define RAWHID_INTERFACE      	3 // RawHID
 #define RAWHID_TX_ENDPOINT    	1
@@ -412,6 +421,10 @@ let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
 
 #define ENDPOINT7_CONFIG  ENDPOINT_TRANSMIT_ONLY
 
+#ifdef USB_MASS_STORAGE
+#define ENDPOINT8_CONFIG  ENDPOINT_RECEIVE_ONLY
+#define ENDPOINT9_CONFIG  ENDPOINT_TRANSMIT_ONLY
+#endif
 
 #elif defined(USB_MIDI4)
   #define VENDOR_ID		0x16C0

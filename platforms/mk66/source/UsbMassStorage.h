@@ -12,11 +12,14 @@ class UsbMassStorage
     void init();
     void update();
     void setMediaReady(bool ready);
+    // Discard an incomplete BOT command when the USB host disconnects.
+    void onUsbDisconnect();
     bool isMediaReady() const { return mediaReady; }
     bool takeEjectRequest();
     bool takeLoadRequest();
 
   private:
+    void resetTransport();
     enum class State : uint8_t
     {
         kWaitCbw,
@@ -25,7 +28,6 @@ class UsbMassStorage
         kSendCsw
     };
 
-    void resetTransport();
     void processCbw();
     void prepareCommand();
     bool queueInPacket(const uint8_t* data, uint8_t length);

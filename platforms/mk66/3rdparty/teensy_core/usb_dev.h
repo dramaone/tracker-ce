@@ -53,6 +53,7 @@ void usb_isr(void);
 usb_packet_t *usb_rx(uint32_t endpoint);
 uint32_t usb_tx_byte_count(uint32_t endpoint);
 uint32_t usb_tx_packet_count(uint32_t endpoint);
+uint32_t usb_tx_pending_packet_count(uint32_t endpoint);
 void usb_tx(uint32_t endpoint, usb_packet_t *packet);
 void usb_tx_isochronous(uint32_t endpoint, void *data, uint32_t len);
 

@@ -772,6 +772,33 @@ uint32_t usb_tx_packet_count(uint32_t endpoint)
 	return count;
 }
 
+// Count packets still awaiting host acknowledgement, including packets already
+// handed to the USB controller's two BDT transmit slots.
+uint32_t usb_tx_pending_packet_count(uint32_t endpoint)
+{
+	const usb_packet_t *p;
+	uint32_t count = 0;
+
+	endpoint--;
+	if (endpoint >= NUM_ENDPOINTS) return 0;
+	__disable_irq();
+	for (p = tx_first[endpoint]; p; p = p->next) count++;
+	switch (tx_state[endpoint]) {
+	  case TX_STATE_EVEN_FREE:
+	  case TX_STATE_ODD_FREE:
+		count++;
+		break;
+	  case TX_STATE_NONE_FREE_EVEN_FIRST:
+	  case TX_STATE_NONE_FREE_ODD_FIRST:
+		count += 2;
+		break;
+	  default:
+		break;
+	}
+	__enable_irq();
+	return count;
+}
+
 
 // Called from usb_free, but only when usb_rx_memory_needed > 0, indicating
 // receive endpoints are starving for memory.  The intention is to give

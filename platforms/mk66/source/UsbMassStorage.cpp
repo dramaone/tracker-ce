@@ -356,7 +356,7 @@ void UsbMassStorage::update()
     // Do not hand the SD card back to FatFs until the host has received the
     // command status wrapper. Releasing it while the CSW is still queued can
     // make Windows wait indefinitely during safe removal.
-    if (usb_tx_packet_count(MSC_TX_ENDPOINT) == 0)
+    if (usb_tx_pending_packet_count(MSC_TX_ENDPOINT) == 0)
     {
         if (ejectAwaitingCompletion)
         {
@@ -394,7 +394,7 @@ void UsbMassStorage::update()
 
     if (state == State::kDataIn)
     {
-        if (usb_tx_packet_count(MSC_TX_ENDPOINT) > 1)
+        if (usb_tx_pending_packet_count(MSC_TX_ENDPOINT) > 1)
             return;
 
         uint8_t packet[64];
@@ -489,7 +489,7 @@ void UsbMassStorage::update()
         return;
     }
 
-    if (state == State::kSendCsw && usb_tx_packet_count(MSC_TX_ENDPOINT) <= 1)
+    if (state == State::kSendCsw && usb_tx_pending_packet_count(MSC_TX_ENDPOINT) <= 1)
         queueCsw();
 }
 

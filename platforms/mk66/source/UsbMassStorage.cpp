@@ -92,6 +92,8 @@ void UsbMassStorage::resetTransport()
     ejectReady = false;
     loadPending = false;
     loadReady = false;
+    ejectAwaitingCompletion = false;
+    loadAwaitingCompletion = false;
 }
 
 void UsbMassStorage::failCommand(uint8_t key, uint8_t asc, uint8_t ascq)
@@ -318,12 +320,13 @@ void UsbMassStorage::queueCsw()
         // has been queued on the USB IN pipe.
         if (ejectPending)
         {
-            ejectReady = true;
+            // Wait until the host has ACKed the CSW before releasing the SD card.
+            ejectAwaitingCompletion = true;
             ejectPending = false;
         }
         if (loadPending)
         {
-            loadReady = true;
+            loadAwaitingCompletion = true;
             loadPending = false;
         }
         state = State::kWaitCbw;
@@ -340,6 +343,23 @@ void UsbMassStorage::update()
     {
         usb_msc_reset_requested = 0;
         resetTransport();
+    }
+
+    // Do not hand the SD card back to FatFs until the host has received the
+    // command status wrapper. Releasing it while the CSW is still queued can
+    // make Windows wait indefinitely during safe removal.
+    if (usb_tx_packet_count(MSC_TX_ENDPOINT) == 0)
+    {
+        if (ejectAwaitingCompletion)
+        {
+            ejectReady = true;
+            ejectAwaitingCompletion = false;
+        }
+        if (loadAwaitingCompletion)
+        {
+            loadReady = true;
+            loadAwaitingCompletion = false;
+        }
     }
 
     if (state == State::kWaitCbw)

@@ -58,6 +58,14 @@ void UsbMassStorage::setMediaReady(bool ready)
     mediaReady = ready;
 }
 
+void UsbMassStorage::onUsbDisconnect()
+{
+    // A bus disconnect aborts any incomplete command. Clear the logical medium
+    // before the filesystem remounts the card under firmware ownership.
+    mediaReady = false;
+    resetTransport();
+}
+
 bool UsbMassStorage::takeEjectRequest()
 {
     const bool requested = ejectReady;
@@ -490,6 +498,7 @@ void UsbMassStorage::update()
 void UsbMassStorage::init() {}
 void UsbMassStorage::update() {}
 void UsbMassStorage::setMediaReady(bool) {}
+void UsbMassStorage::onUsbDisconnect() { resetTransport(); }
 bool UsbMassStorage::takeEjectRequest() { return false; }
 bool UsbMassStorage::takeLoadRequest() { return false; }
 void UsbMassStorage::resetTransport() {}

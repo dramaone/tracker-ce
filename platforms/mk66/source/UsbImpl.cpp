@@ -4,6 +4,7 @@
 #include "../../../core/interface/core/interface.h"
 #include "../../../core/AudioEngine/UsbStorageAudioBridge.h"
 #include "usb_dev.h"
+#include "log.h"
 
 
 
@@ -25,9 +26,19 @@ void UsbImpl::update()
     {
         if (storageOwned)
         {
-            massStorage.setMediaReady(false);
+            // A cable pull can interrupt a BOT command mid-transfer. Reset
+            // that command before handing the SD card back to FatFs.
+            LOG("USB MSC: disconnect detected; resetting transport.");
+            massStorage.onUsbDisconnect();
+
+            LOG("USB MSC: SD remount begin.");
             const bool mounted = fileSystem != nullptr && fileSystem->endUsbStorage();
+            if (mounted)
+                LOG("USB MSC: SD remount succeeded.");
+            else
+                LOG("USB MSC: SD remount failed.");
             resumeSdCardAfterUsbStorage(mounted);
+            LOG("USB MSC: audio stream scheduler resumed.");
             storageOwned = false;
         }
         storageEjected = false;

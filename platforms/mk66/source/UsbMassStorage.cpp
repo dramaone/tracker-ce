@@ -98,7 +98,6 @@ void UsbMassStorage::resetTransport()
     writeCommand = false;
     ejectPending = false;
     ejectReady = false;
-    preventRemoval = false;
     loadPending = false;
     loadReady = false;
     ejectAwaitingCompletion = false;
@@ -249,14 +248,7 @@ void UsbMassStorage::prepareCommand()
             const bool loadEject = (cdb[4] & 0x02) != 0;
             const bool start = (cdb[4] & 0x01) != 0;
             if (loadEject && !start && mediaReady)
-            {
-                if (preventRemoval)
-                {
-                    failCommand(0x05, 0x53, 0x02); // medium removal prevented
-                    return;
-                }
                 ejectPending = true;
-            }
             else if (loadEject && start && !mediaReady)
                 loadPending = true;
             state = State::kSendCsw;
@@ -264,12 +256,7 @@ void UsbMassStorage::prepareCommand()
         }
 
         case 0x1E: // PREVENT/ALLOW MEDIUM REMOVAL
-            preventRemoval = (cdb[4] & 0x01) != 0;
-            state = State::kSendCsw;
-            return;
-
         case 0x35: // SYNCHRONIZE CACHE (10)
-            // All SD writes are completed synchronously before their CSW.
             state = State::kSendCsw;
             return;
 

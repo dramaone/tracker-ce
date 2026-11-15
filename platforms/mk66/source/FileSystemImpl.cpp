@@ -172,7 +172,10 @@ bool FileSystemImpl::endUsbStorage()
     }
 
     // USB must have stopped issuing block commands before this is called.
+    // Log the exact point at which disconnect recovery can stall.
+    LOG("USB storage: SD.mount() starting.");
     const bool mounted = SD.mount();
+    LOG(mounted ? "USB storage: SD.mount() complete." : "USB storage: SD.mount() failed.");
     usbStorageActive = false;
     cardInitializedSuccessfully = mounted;
 

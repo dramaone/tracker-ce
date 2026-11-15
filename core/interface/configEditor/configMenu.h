@@ -36,6 +36,9 @@ class cMenuGroup : public cMenuBase
       , childsNames(new char*[childs_count])
       , childsValues(new char*[childs_count])
       , groupName(name)
+      , selectedItem(0)
+      , slotsUsed(0)
+      , slot(0)
     {
         slot = parent.getNextSlotNumber();
         if (slot < parent.childsCount)
@@ -43,7 +46,6 @@ class cMenuGroup : public cMenuBase
             parent.childs[slot] = this;
             parent.childsNames[slot] = (char*)name;
         }
-        selectedItem = 0;
         slotsUsed = 0;
     }
 

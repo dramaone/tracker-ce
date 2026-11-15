@@ -56,7 +56,7 @@ jobs:
         run: |
           set -o pipefail
           POSTFIX_ARGS=""
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             SHORT_SHA=$(git rev-parse --short=7 HEAD)
             POSTFIX_ARGS="ORIGINAL_POSTFIX=DRAMA1TEXT015 PLUS_POSTFIX=DRAMA1TEXT015 MINI_POSTFIX=DRAMA1TEXT015 BUILD_ID_STR=DRAMA1TEXT015"
           fi

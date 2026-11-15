@@ -61,6 +61,7 @@ class UsbMassStorage
     bool ejectReady = false;
     bool loadPending = false;
     bool loadReady = false;
+    bool preventRemoval = false;
     bool ejectAwaitingCompletion = false;
     bool loadAwaitingCompletion = false;
     uint8_t sectorBuffer[512] __attribute__((aligned(32))){};

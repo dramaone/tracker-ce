@@ -603,30 +603,38 @@ static Theme makePaletteTheme(uint32_t background, uint32_t surface, uint32_t te
 
 const Theme& getBuiltInTheme(uint8_t index)
 {
-    static const Theme themes[] = {
-        themeDefault, themeWhiteout, themeAnniversary,
-        makePaletteTheme(0x80808, 0x202020, 0xF2F2F2, 0xB0B0B0, 0x35D07F, 0xD7D7D7),
-        makePaletteTheme(0x20B05, 0x92014, 0xD7FFE3, 0x75B88A, 0xFF66, 0xB5FF00),
-        makePaletteTheme(0x50B20, 0x101F3D, 0xE4F2FF, 0x829DBB, 0x22A7FF, 0xE5FF),
-        makePaletteTheme(0x160D05, 0x2B1B0B, 0xFFE4B5, 0xB89A72, 0xFFB347, 0xE87932),
-        makePaletteTheme(0x10051A, 0x281039, 0xF8E8FF, 0xB89AC8, 0xD94BFF, 0x7B5CFF),
-        makePaletteTheme(0x160606, 0x301010, 0xFFE7E7, 0xB88A8A, 0xFF3030, 0xFF8A40),
-        makePaletteTheme(0x7121C, 0x122A3A, 0xE8FFFF, 0x82B8C2, 0xFF4FA3, 0x20E0D0),
-        makePaletteTheme(0x10051F, 0x26113D, 0xF7E9FF, 0xB69ACB, 0xFF3FA4, 0x35D8FF),
-        makePaletteTheme(0x27245D, 0x383477, 0xA8A8FF, 0x7777C9, 0x8A8AFF, 0xD6D6FF),
-        makePaletteTheme(0x101010, 0x252525, 0xF5F5F5, 0xA0A0A0, 0xE6E6E6, 0x70C0A0),
-        makePaletteTheme(0x80812, 0x1A1A2C, 0xFFFFFF, 0x9999B8, 0xFF3030, 0xE6FF),
-        makePaletteTheme(0xDCE7EF, 0xC3D2DF, 0x152536, 0x526A7E, 0x87FC1, 0xA6A6),
-        makePaletteTheme(0x31521, 0x82B3B, 0xD8F5FF, 0x78A9B8, 0xB9D6, 0x187BFF),
-        makePaletteTheme(0x7150D, 0x14291B, 0xE1F5E5, 0x91B09A, 0x52C878, 0xC0A85A),
-        makePaletteTheme(0x1B0B14, 0x351727, 0xFFE9D8, 0xC29AA4, 0xFF765E, 0xFFC15A),
-        makePaletteTheme(0x1A100B, 0x302018, 0xF7E3D3, 0xB89B88, 0xD98955, 0xF0B878),
-        makePaletteTheme(0xB1003, 0x202B08, 0xF2FFD6, 0xA4B77C, 0xB8FF00, 0x48D66A),
-        makePaletteTheme(0x180713, 0x321027, 0xFFEAF7, 0xC49AB8, 0xFF35B8, 0xFF8CCF),
-        makePaletteTheme(0x90B0D, 0x191D21, 0xE3E7EA, 0x89939B, 0x8796A5, 0xC0CBD4),
-        makePaletteTheme(0x171206, 0x30250B, 0xFFF2C7, 0xB9A36D, 0xE8B923, 0xFFF0A0),
-    };
-    return themes[index < (sizeof(themes) / sizeof(themes[0])) ? index : 0];
+    if (index == 0) return themeDefault;
+    if (index == 1) return themeWhiteout;
+    if (index == 2) return themeAnniversary;
+
+    // Keep only one generated palette in RAM. Storing all 20 complete Theme
+    // objects here overflows the Tracker+ internal DTC memory.
+    static Theme selectedTheme;
+    switch (index)
+    {
+        case 3: selectedTheme = makePaletteTheme(0x080808, 0x202020, 0xF2F2F2, 0xB0B0B0, 0x35D07F, 0xD7D7D7); break;
+        case 4: selectedTheme = makePaletteTheme(0x020B05, 0x092014, 0xD7FFE3, 0x75B88A, 0x00FF66, 0xB5FF00); break;
+        case 5: selectedTheme = makePaletteTheme(0x050B20, 0x101F3D, 0xE4F2FF, 0x829DBB, 0x22A7FF, 0x00E5FF); break;
+        case 6: selectedTheme = makePaletteTheme(0x160D05, 0x2B1B0B, 0xFFE4B5, 0xB89A72, 0xFFB347, 0xE87932); break;
+        case 7: selectedTheme = makePaletteTheme(0x10051A, 0x281039, 0xF8E8FF, 0xB89AC8, 0xD94BFF, 0x7B5CFF); break;
+        case 8: selectedTheme = makePaletteTheme(0x160606, 0x301010, 0xFFE7E7, 0xB88A8A, 0xFF3030, 0xFF8A40); break;
+        case 9: selectedTheme = makePaletteTheme(0x07121C, 0x122A3A, 0xE8FFFF, 0x82B8C2, 0xFF4FA3, 0x20E0D0); break;
+        case 10: selectedTheme = makePaletteTheme(0x10051F, 0x26113D, 0xF7E9FF, 0xB69ACB, 0xFF3FA4, 0x35D8FF); break;
+        case 11: selectedTheme = makePaletteTheme(0x27245D, 0x383477, 0xA8A8FF, 0x7777C9, 0x8A8AFF, 0xD6D6FF); break;
+        case 12: selectedTheme = makePaletteTheme(0x101010, 0x252525, 0xF5F5F5, 0xA0A0A0, 0xE6E6E6, 0x70C0A0); break;
+        case 13: selectedTheme = makePaletteTheme(0x080812, 0x1A1A2C, 0xFFFFFF, 0x9999B8, 0xFF3030, 0x00E6FF); break;
+        case 14: selectedTheme = makePaletteTheme(0xDCE7EF, 0xC3D2DF, 0x152536, 0x526A7E, 0x87FCFF, 0x00A6A6); break;
+        case 15: selectedTheme = makePaletteTheme(0x031521, 0x082B3B, 0xD8F5FF, 0x78A9B8, 0x00B9D6, 0x187BFF); break;
+        case 16: selectedTheme = makePaletteTheme(0x07150D, 0x14291B, 0xE1F5E5, 0x91B09A, 0x52C878, 0xC0A85A); break;
+        case 17: selectedTheme = makePaletteTheme(0x1B0B14, 0x351727, 0xFFE9D8, 0xC29AA4, 0xFF765E, 0xFFC15A); break;
+        case 18: selectedTheme = makePaletteTheme(0x1A100B, 0x302018, 0xF7E3D3, 0xB89B88, 0xD98955, 0xF0B878); break;
+        case 19: selectedTheme = makePaletteTheme(0x0B1003, 0x202B08, 0xF2FFD6, 0xA4B77C, 0xB8FF00, 0x48D66A); break;
+        case 20: selectedTheme = makePaletteTheme(0x180713, 0x321027, 0xFFEAF7, 0xC49AB8, 0xFF35B8, 0xFF8CCF); break;
+        case 21: selectedTheme = makePaletteTheme(0x090B0D, 0x191D21, 0xE3E7EA, 0x89939B, 0x8796A5, 0xC0CBD4); break;
+        case 22: selectedTheme = makePaletteTheme(0x171206, 0x30250B, 0xFFF2C7, 0xB9A36D, 0xE8B923, 0xFFF0A0); break;
+        default: return themeDefault;
+    }
+    return selectedTheme;
 }
 
 Theme themeCustom = themeDefault;

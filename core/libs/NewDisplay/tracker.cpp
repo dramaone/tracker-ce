@@ -15,7 +15,8 @@ static void Number2HexBitmaps(int16_t x, int16_t y, uint8_t font_x, uint8_t font
 
 #define ROW_NUM 1
 
-static constexpr uint8_t text_font = 1;
+// Pattern Editor uses the bold 17px font slot for stronger, fixed-pitch data.
+static constexpr uint8_t text_font = 3;
 static int16_t s_lastCell = -1;
 
 #if ROW_NUM
@@ -1356,7 +1357,7 @@ void cTracker::String2Bitmaps(int16_t x,
     y = y - font->height / 2;
     uint8_t strPtr = 0;
 
-    x += fonts[1].width - font->width; // text_font
+    x += fonts[text_font].width - font->width;
 
     unsigned char ch;
     for (uint8_t i = 0; i < length; i++)

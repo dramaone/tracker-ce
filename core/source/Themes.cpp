@@ -1,4 +1,5 @@
 #include "Themes.h"
+#include <stddef.h>
 
 // COLORS
 static constexpr uint32_t one_true_red = 0xcd1818;

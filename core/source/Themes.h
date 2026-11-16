@@ -124,5 +124,6 @@ extern const Theme themeDefault;
 extern const Theme themeWhiteout;
 extern const Theme themeAnniversary;
 extern Theme themeCustom;
+const Theme& getBuiltInTheme(uint8_t index);
 
 #endif /* INTERFACE_CORE_THEMES_H_ */

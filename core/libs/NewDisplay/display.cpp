@@ -1251,13 +1251,7 @@ void cDisplay::turnOff()
 
 void cDisplay::setTheme(uint8_t index)
 {
-    switch (index)
-    {
-        case 0: theme = &themeDefault; break;
-        case 1: theme = &themeWhiteout; break;
-        case 2: theme = &themeAnniversary; break;
-        default: theme = &themeDefault; break;
-    }
+    theme = &getBuiltInTheme(index);
 }
 
 void cDisplay::setCustomTheme(const Theme& customTheme)

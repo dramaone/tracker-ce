@@ -180,7 +180,14 @@ static void saveSongBlockLabel()
         }
     }
 
-    newFileManager.setSongBlockLabel(songBlockLabelPattern, songBlockLabelTrack, filteredLabel);
+    if (!newFileManager.setSongBlockLabel(songBlockLabelPattern, songBlockLabelTrack, filteredLabel))
+    {
+        // Keep the keyboard open so the user can choose an unused label.
+        display.setControlText(SE->label[0], "Name Used");
+        display.setControlText2(SE->label[0], "Try Another");
+        display.refreshControl(SE->label[0]);
+        return;
+    }
 
     finishSongBlockLabelEdit();
 }

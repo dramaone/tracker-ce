@@ -65,11 +65,11 @@ bool cFileManager::switchNextPatternInSong()
 }
 
 
-void cFileManager::setSongBlockLabel(uint8_t patternIdx, uint8_t trackIdx, const char label[4])
+bool cFileManager::setSongBlockLabel(uint8_t patternIdx, uint8_t trackIdx, const char label[4])
 {
     if (patternIdx == 0 || patternIdx > PATTERN_INDEX_MAX || trackIdx >= kAllTracks)
     {
-        return;
+        return false;
     }
 
     char path[PATCH_SIZE];
@@ -77,7 +77,7 @@ void cFileManager::setSongBlockLabel(uint8_t patternIdx, uint8_t trackIdx, const
     Sequencer::strPattern* referencePattern = &songTrackCopy[0];
     if (!readPatternFile(path, referencePattern))
     {
-        return;
+        return false;
     }
 
     const auto& referenceTrack = referencePattern->track[trackIdx];
@@ -144,6 +144,45 @@ void cFileManager::setSongBlockLabel(uint8_t patternIdx, uint8_t trackIdx, const
         return false;
     };
 
+    // A label is a unique name for musical content. Reusing it for a different
+    // block is rejected; identical content may deliberately share the label.
+    if (label[0] != 0 && trackHasData(referenceTrack))
+    {
+        bool checkedPatterns[PATTERN_INDEX_MAX + 1] = {};
+        for (uint16_t candidatePattern = 1; candidatePattern <= PATTERN_INDEX_MAX; ++candidatePattern)
+        {
+            bool patternHasLabel = false;
+            for (uint8_t candidateTrack = 0; candidateTrack < kAllTracks; ++candidateTrack)
+            {
+                if (candidatePattern == patternIdx && candidateTrack == trackIdx)
+                    continue;
+                const char* existingLabel = songBlockLabels[(candidatePattern - 1) * kAllTracks + candidateTrack];
+                if (memcmp(existingLabel, label, 4) == 0)
+                {
+                    patternHasLabel = true;
+                    break;
+                }
+            }
+            if (!patternHasLabel || checkedPatterns[candidatePattern])
+                continue;
+            checkedPatterns[candidatePattern] = true;
+            snprintf(path, sizeof(path), "Workspace/patterns/pattern_%02d.mtp", candidatePattern);
+            if (!readPatternFile(path, &songTrackCopy[1]))
+                continue;
+            for (uint8_t candidateTrack = 0; candidateTrack < kAllTracks; ++candidateTrack)
+            {
+                if (candidatePattern == patternIdx && candidateTrack == trackIdx)
+                    continue;
+                const char* existingLabel = songBlockLabels[(candidatePattern - 1) * kAllTracks + candidateTrack];
+                if (memcmp(existingLabel, label, 4) != 0)
+                    continue;
+                const auto& existingTrack = songTrackCopy[1].track[candidateTrack];
+                if (!trackHasData(existingTrack) || !tracksMatch(existingTrack, referenceTrack))
+                    return false;
+            }
+        }
+    }
+
     if (trackHasData(referenceTrack))
     {
         // Only inspect patterns that actually appear in the song, and only the
@@ -181,6 +220,7 @@ void cFileManager::setSongBlockLabel(uint8_t patternIdx, uint8_t trackIdx, const
 
     memcpy(songBlockLabels[(patternIdx - 1) * kAllTracks + trackIdx], label, 4);
     setProjectStructChanged();
+    return true;
 }
 
 void cFileManager::copySongTracks(char* currentProjectPath,

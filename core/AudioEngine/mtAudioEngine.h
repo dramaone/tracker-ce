@@ -192,6 +192,9 @@ class audioEngine
     ExportQueues* getExportQueues();
     MixerAndFxs<kVoices>* getMixerAndFx();
     AudioPlaySdWav* getSdPlayer();
+    // Stop all SD-backed audio activity before another USB host owns the card.
+    bool prepareSdCardForUsb();
+    void resumeSdCardAfterUsb(bool mounted);
 
     friend class playerEngine;
 
@@ -833,5 +836,9 @@ extern audioEngine engine;
 extern playerEngine instrumentPlayer[8];
 extern uint8_t isBlockedInstrument[48];
 extern uint8_t isBlockedNoteOn[48];
+
+// Pattern Mode note-triggered track meter handoff (audio core -> display).
+extern volatile uint8_t trackMeterTrigger[audioEngine::kVoices];
+extern volatile uint8_t trackMeterLevel[audioEngine::kVoices];
 
 #endif /* SOURCE_MTAUDIOENGINE_H_ */

@@ -572,7 +572,15 @@ static uint8_t flightsim_report_desc[] = {
 #define MULTITOUCH_INTERFACE_DESC_SIZE	0
 #endif
 
-#define CONFIG_DESC_SIZE		MULTITOUCH_INTERFACE_DESC_POS+MULTITOUCH_INTERFACE_DESC_SIZE
+#ifdef USB_MASS_STORAGE
+#define MSC_INTERFACE_DESC_POS       MULTITOUCH_INTERFACE_DESC_POS+MULTITOUCH_INTERFACE_DESC_SIZE
+#define MSC_INTERFACE_DESC_SIZE      9+7+7
+#else
+#define MSC_INTERFACE_DESC_POS       MULTITOUCH_INTERFACE_DESC_POS+MULTITOUCH_INTERFACE_DESC_SIZE
+#define MSC_INTERFACE_DESC_SIZE      0
+#endif
+
+#define CONFIG_DESC_SIZE             MSC_INTERFACE_DESC_POS+MSC_INTERFACE_DESC_SIZE
 
 
 
@@ -1401,6 +1409,33 @@ static uint8_t config_descriptor[CONFIG_DESC_SIZE] = {
         MULTITOUCH_SIZE, 0,                     // wMaxPacketSize
         1,                                      // bInterval
 #endif // KEYMEDIA_INTERFACE
+
+#ifdef USB_MASS_STORAGE
+        // USB Mass Storage Class, Bulk-Only Transport interface.
+        9,                                      // bLength
+        4,                                      // bDescriptorType (INTERFACE)
+        MSC_INTERFACE,                         // bInterfaceNumber
+        0,                                      // bAlternateSetting
+        2,                                      // bNumEndpoints
+        0x08,                                   // bInterfaceClass (Mass Storage)
+        0x06,                                   // bInterfaceSubClass (SCSI transparent)
+        0x50,                                   // bInterfaceProtocol (Bulk-Only)
+        0,                                      // iInterface
+        // Bulk OUT endpoint
+        7,                                      // bLength
+        5,                                      // bDescriptorType (ENDPOINT)
+        MSC_RX_ENDPOINT,                        // bEndpointAddress
+        0x02,                                   // bmAttributes (Bulk)
+        MSC_ENDPOINT_SIZE, 0,                   // wMaxPacketSize
+        0,                                      // bInterval
+        // Bulk IN endpoint
+        7,                                      // bLength
+        5,                                      // bDescriptorType (ENDPOINT)
+        MSC_TX_ENDPOINT | 0x80,                 // bEndpointAddress
+        0x02,                                   // bmAttributes (Bulk)
+        MSC_ENDPOINT_SIZE, 0,                   // wMaxPacketSize
+        0,                                      // bInterval
+#endif // USB_MASS_STORAGE
 };
 
 

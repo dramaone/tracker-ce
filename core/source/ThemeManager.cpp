@@ -10,7 +10,7 @@
 
 Platform* ThemeManager::platform = nullptr;
 
-uint8_t ThemeManager::themeCount = 3;
+uint8_t ThemeManager::themeCount = 23;
 __NOINIT(EXTERNAL_RAM) char ThemeManager::themeNames[ThemeManager::kMaxCustomThemes][ThemeManager::kMaxNameLength];
 __NOINIT(EXTERNAL_RAM) const char* ThemeManager::themeNamePointers[ThemeManager::kMaxCustomThemes];
 __NOINIT(EXTERNAL_RAM) char ThemeManager::themeFilePaths[ThemeManager::kMaxCustomThemes][64];
@@ -37,12 +37,37 @@ void ThemeManager::ensureDefaultsInitialized()
         return;
     initialized = true;
 
-    strcpy(themeNames[0], "Original");
-    strcpy(themeNames[1], "Monochrome");
-    strcpy(themeNames[2], "Anniversary");
-    themeNamePointers[0] = themeNames[0];
-    themeNamePointers[1] = themeNames[1];
-    themeNamePointers[2] = themeNames[2];
+    static const char* const builtInNames[] = {
+        "Original",
+        "Monochrome",
+        "Anniversary",
+        "Amiga Classic",
+        "Matrix Green",
+        "Cyber Blue",
+        "Vintage Amber",
+        "Neon Purple",
+        "Blood Red",
+        "Miami Vice",
+        "Synthwave",
+        "Commodore 64",
+        "Atari ST",
+        "Arcade",
+        "Ice White",
+        "Deep Ocean",
+        "Forest",
+        "Sunset",
+        "Copper",
+        "Toxic Lime",
+        "Electric Pink",
+        "Stealth",
+        "Gold Edition",
+    };
+    for (uint8_t i = 0; i < 23; ++i)
+    {
+        strncpy(themeNames[i], builtInNames[i], kMaxNameLength - 1);
+        themeNames[i][kMaxNameLength - 1] = '\0';
+        themeNamePointers[i] = themeNames[i];
+    }
 
     strcpy(fontNames[0], "Original");
     strcpy(fontNames[1], "New");
@@ -1376,10 +1401,9 @@ static void scanAssetDirectory(
 void ThemeManager::scanThemes()
 {
     ensureDefaultsInitialized();
-    themeCount = 3;
-    themeNamePointers[0] = themeNames[0];
-    themeNamePointers[1] = themeNames[1];
-    themeNamePointers[2] = themeNames[2];
+    themeCount = 23;
+    for (uint8_t i = 0; i < 23; ++i)
+        themeNamePointers[i] = themeNames[i];
 
     scanAssetDirectory(
       platform,
@@ -1445,7 +1469,7 @@ const char* ThemeManager::getCurrentThemeName()
 bool ThemeManager::applyTheme(uint8_t index)
 {
     ensureDefaultsInitialized();
-    if (index < 3)
+    if (index < 23)
     {
         currentThemeIndex = index;
         display.setTheme(index);

@@ -80,15 +80,16 @@ bool SdCard::init()
     SD_PowerOffCard(g_sd.host.base, g_sd.usrParam.pwr);
     SD_PowerOnCard(g_sd.host.base, g_sd.usrParam.pwr);
 
+    return mount();
+}
+
+bool SdCard::mount()
+{
     FRESULT result = f_mount(&g_fileSystem, driverNumberBuffer, 1U);
     if (result)
     {
-        // if(i > 0)
         return false;
     }
-
-    //	else break;
-    //	}
 
 #if (FF_FS_RPATH >= 2U)
     FRESULT error = f_chdrive((char const*)&driverNumberBuffer[0U]);
@@ -97,7 +98,6 @@ bool SdCard::init()
         return false;
     }
 #endif
-
     return true;
 }
 

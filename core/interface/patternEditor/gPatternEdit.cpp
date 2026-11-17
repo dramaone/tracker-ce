@@ -69,6 +69,35 @@ const char* ptrfillStepNames[fillStepCount] = {
 
 void cPatternEditor::initDisplayControls()
 {
+    // Pattern Editor-only Amiga palette. Preserve the final four theme entries
+    // used by tracker status/level rendering.
+    static uint32_t patternEditorColors[21];
+    const uint32_t* themePatternColors = display.getTheme().patternTrackerColors;
+    for (uint8_t i = 0; i < 21; ++i)
+    {
+        patternEditorColors[i] = themePatternColors[i];
+    }
+
+    // Classic high-contrast Amiga look: black canvas, bright white data,
+    // subdued inactive fields and fine grey separators.
+    patternEditorColors[0] = 0xFFFFFF;
+    patternEditorColors[1] = 0x000000;
+    patternEditorColors[2] = 0xFFFFFF;
+    patternEditorColors[3] = 0xFFFFFF;
+    patternEditorColors[4] = 0xFFFFFF;
+    patternEditorColors[5] = 0xFFFFFF;
+    patternEditorColors[6] = 0x606060;
+    patternEditorColors[7] = 0x606060;
+    patternEditorColors[8] = 0x606060;
+    patternEditorColors[9] = 0x606060;
+    patternEditorColors[10] = 0xFFFFFF;
+    patternEditorColors[11] = 0x303030;
+    patternEditorColors[12] = 0x707070;
+    patternEditorColors[13] = 0x000000;
+    patternEditorColors[14] = 0x000000;
+    patternEditorColors[15] = 0x303030;
+    patternEditorColors[16] = 0x808080;
+
     strControlProperties prop;
     // ramka
     frameData.placesCount = 8;
@@ -224,7 +253,7 @@ void cPatternEditor::initDisplayControls()
     prop.y = mtConfig.general.patternInfo != 0 ? 0 : 28;
     prop.w = 800;
     prop.h = mtConfig.general.patternInfo != 0 ? 423 : 395;
-    prop.colors = display.getTheme().patternTrackerColors;
+    prop.colors = patternEditorColors;
     prop.data = &trackerPattern;
     prop.value = patternViewMode;
     verticalPatternControl = display.createControl<cTracker>(&prop);
@@ -244,7 +273,7 @@ void cPatternEditor::initDisplayControls()
     //	prop.y =  mtConfig.general.patternInfo != 1 ? 0 : 28;
     //	prop.w = 800;
     //	prop.h = mtConfig.general.patternInfo != 1 ? 423 : 395;
-    prop.colors = display.getTheme().patternTrackerColors;
+    prop.colors = patternEditorColors;
     prop.data = &trackerPattern;
     prop.value = patternViewMode;
     horizontalPatternControl = display.createControl<cHorizontalTracker>(&prop);

@@ -21,7 +21,7 @@
 constexpr uint8_t baseMenuGroupCount = 8;
 constexpr uint8_t projectMenuGroupCount = 10;
 constexpr uint8_t generalMenuGroupCount = 9;
-#elif defined(PLATFORM_IMX)
+#elif defined(PLATFORM_IMX) || defined(USB_MASS_STORAGE)
 constexpr uint8_t baseMenuGroupCount = 7;
 constexpr uint8_t projectMenuGroupCount = 10;
 constexpr uint8_t generalMenuGroupCount = 12;
@@ -45,8 +45,12 @@ cMenuGroup menuProject(menuBase, "Project Settings", projectMenuGroupCount);
 cMenuGroup menuGeneral(menuBase, "General", generalMenuGroupCount);
 cMenuGroup menuMidi(menuBase, "MIDI", 11);
 
+#if defined(PLATFORM_IMX) || defined(USB_MASS_STORAGE)
 #ifdef PLATFORM_IMX
 cMenuGroup menuUsb(menuBase, "USB", 2);
+#else
+cMenuGroup menuUsb(menuBase, "USB", 1);
+#endif
 #endif
 
 cMenuGroup menuMetro(menuBase, "Metronome", 5);
@@ -279,22 +283,25 @@ cMenuItem melResetConfig(menuFirmware,
 //==================================================================================================================================================================
 // USB
 
-#ifdef PLATFORM_IMX
+#if defined(PLATFORM_IMX) || defined(USB_MASS_STORAGE)
 const strItemTypeActionButton usbStorageSetup{ usbStorageEnter, nullptr };
-const strItemTypeListTextWithAction usbAudioSetup{ &mtConfig.common.usbAudioMode,
-                                              sizeof(kUsbAudioList)/sizeof(kUsbAudioList[0]), kUsbAudioList, usbAudioChange };
 
 cMenuItem melUsbStorage(menuUsb,
                           "Storage",
-						  nullptr,
-						  menuTypeItemActionButton,
+                          nullptr,
+                          menuTypeItemActionButton,
                           &usbStorageSetup);
+
+#ifdef PLATFORM_IMX
+const strItemTypeListTextWithAction usbAudioSetup{ &mtConfig.common.usbAudioMode,
+                                              sizeof(kUsbAudioList)/sizeof(kUsbAudioList[0]), kUsbAudioList, usbAudioChange };
 
 cMenuItem melUsbAudio(menuUsb,
                           "Audio",
-						  usbAudioDesc,
-						  menuTypeItemListTextWithAction,
+                          usbAudioDesc,
+                          menuTypeItemListTextWithAction,
                           &usbAudioSetup);
+#endif
 #endif
 //==================================================================================================================================================================
 // File transfer

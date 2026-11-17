@@ -221,6 +221,17 @@ void Interface::doStartTasks()
     }
     interfaceGlobals.currentFirmwareBuild = platform->getSystemInfo()->buildId;
 
+    // Show the custom firmware build identifier on the startup splash screen.
+    if (interfaceGlobals.currentFirmwareBuild != nullptr)
+    {
+        strncat(interfaceGlobals.currentFirmwareVersion,
+                " ",
+                sizeof(interfaceGlobals.currentFirmwareVersion) - strlen(interfaceGlobals.currentFirmwareVersion) - 1);
+        strncat(interfaceGlobals.currentFirmwareVersion,
+                interfaceGlobals.currentFirmwareBuild,
+                sizeof(interfaceGlobals.currentFirmwareVersion) - strlen(interfaceGlobals.currentFirmwareVersion) - 1);
+    }
+
     ThemeManager::init(platform);
     refreshThemeAndFontMenuOptions();
 
@@ -447,6 +458,24 @@ bool Interface::setFileTransferMode(bool enable)
     }
 
     return specialScreenMode == usbStorageScreenMode;
+}
+
+void Interface::onUsbStorageEjected()
+{
+    if (specialScreenMode != usbStorageScreenMode)
+    {
+        return;
+    }
+
+    // The platform has already remounted the card and resumed SD-backed audio.
+    // Finish the UI-side handover without mounting the volume a second time.
+    ip->unblockAllInputs();
+    newFileManager.setWorkspaceSaveSuspended(false);
+    activateInterface();
+
+    Usb* usb = mtInterface.getPlatform()->getUsb();
+    usb->setClassState(Usb::ClassType::kStorage, false);
+    usb->reset();
 }
 
 void Interface::refreshInterfaceControlsColors()

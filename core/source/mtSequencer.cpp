@@ -2492,13 +2492,25 @@ AUDIO_CORE_RAM void Sequencer::sendNoteOn(uint8_t track,
     }
     else if (isSampleInstrument(step->instrument) && isSampleTrack(track))
     {
-        instrumentPlayer[track].noteOn(step->instrument,
-                                       step->note,
-                                       step->volume,
-                                       step->fx[0].type,
-                                       step->fx[0].value,
-                                       step->fx[1].type,
-                                       step->fx[1].value);
+        // The Pattern Mode meter follows the programmed note volume.
+        // An unset step volume means full level; instrument volume is not
+        // folded into this display value.
+        const uint8_t meterLevel = step->volume < 0
+                                     ? 100
+                                     : static_cast<uint8_t>(
+                                         std::min<int>(100, step->volume));
+
+        if (instrumentPlayer[track].noteOn(step->instrument,
+                                           step->note,
+                                           step->volume,
+                                           step->fx[0].type,
+                                           step->fx[0].value,
+                                           step->fx[1].type,
+                                           step->fx[1].value))
+        {
+            trackMeterLevel[track] = meterLevel;
+            trackMeterTrigger[track] = 1;
+        }
     }
 }
 

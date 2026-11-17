@@ -19,6 +19,8 @@ extern void disableHardware();
 
 void PlatformImpl::init()
 {
+    usb.setFileSystem(&fileSystem);
+    usb.init();
 }
 
 void PlatformImpl::update()
@@ -27,6 +29,7 @@ void PlatformImpl::update()
     {
         return;
     }
+    usb.update();
     // if (!sequencer.isRenderMode()) // todo: warunek zaimplementowac ; czy potrzebne to?
     //    {
     fileSystem.update();

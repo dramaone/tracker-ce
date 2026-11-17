@@ -736,16 +736,12 @@ void cSongPlayer::fillBlocks()
             }
             else
             {
-                if (track < controlData->normalTracksCount
-                      ? controlData->normalTracksMute[track]
-                      : controlData->midiTracksMute[track - controlData->normalTracksCount])
-                {
-                    API_COLOR(colors[7]);
-                }
-                else
-                {
-                    API_COLOR(colors[1]);
-                }
+                const bool isMuted =
+                  track < controlData->normalTracksCount
+                    ? controlData->normalTracksMute[track]
+                    : controlData->midiTracksMute[track - controlData->normalTracksCount];
+                // Active song cells are white; retain the existing muted-track shade.
+                API_COLOR(isMuted ? colors[7] : colors[1]);
                 API_VERTEX2F((localX), (localY + 1));
                 API_VERTEX2F((localX + blockWidth - 1), (localY + BLOCK_HEIGHT - 1));
             }
@@ -756,6 +752,49 @@ void cSongPlayer::fillBlocks()
     }
 
     API_END();
+
+    // Draw labels after the rectangle batch so text remains crisp and centred.
+    if (controlData->songBlockLabels != nullptr)
+    {
+        for (int pattern = 0; pattern < maxPatternsVisible; pattern++)
+        {
+            const uint8_t patternNumber = controlData->songData[textListPos + pattern];
+            if (patternNumber == 0 || patternNumber > SONG_MAX)
+            {
+                continue;
+            }
+
+            const uint16_t data =
+              controlData->normalPatternsBitmask[patternNumber - 1] |
+              (controlData->midiPatternsBitmask[patternNumber - 1] << 8);
+            const uint16_t localY = posY + pattern * (BLOCK_HEIGHT + BLOCK_SPACING) + 64;
+
+            for (int track = 0; track < allTracksCount; track++)
+            {
+                if (!(data & (1 << track)))
+                {
+                    continue;
+                }
+
+                const char* label =
+                  controlData->songBlockLabels + (((patternNumber - 1) * kAllTracks + track) * 4);
+                if (label[0] == 0)
+                {
+                    continue;
+                }
+
+                const uint16_t localX =
+                  posX + BLOCKS_MARGIN + track * (blockWidth + BLOCK_SPACING);
+                // Active song blocks have a white fill, so use the theme's dark text colour.
+                API_COLOR(colors[6]);
+                API_CMD_TEXT(localX + blockWidth / 2,
+                             localY + BLOCK_HEIGHT / 2,
+                             font->handle,
+                             OPT_CENTER,
+                             label);
+            }
+        }
+    }
 
     drawSelection();
 }

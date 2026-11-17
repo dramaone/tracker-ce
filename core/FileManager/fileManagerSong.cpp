@@ -144,38 +144,50 @@ bool cFileManager::setSongBlockLabel(uint8_t patternIdx, uint8_t trackIdx, const
         return false;
     };
 
-    // A label is a unique name for musical content. Reusing it for a different
-    // block is rejected; identical content may deliberately share the label.
+    // A label is a unique name for musical content. Reusing it for a
+    // different block is rejected; identical content may share the label.
     if (label[0] != 0 && trackHasData(referenceTrack))
     {
         bool checkedPatterns[PATTERN_INDEX_MAX + 1] = {};
-        for (uint16_t candidatePattern = 1; candidatePattern <= PATTERN_INDEX_MAX; ++candidatePattern)
+        for (uint16_t songPos = 0; songPos < SONG_MAX; ++songPos)
         {
+            const uint8_t candidatePattern = mtProject.song.playlist[songPos];
+            if (candidatePattern == PLAYLIST_EMPTY_SLOT)
+                break;
+            if (candidatePattern == 0 || candidatePattern > PATTERN_INDEX_MAX ||
+                checkedPatterns[candidatePattern])
+                continue;
+            checkedPatterns[candidatePattern] = true;
+
             bool patternHasLabel = false;
             for (uint8_t candidateTrack = 0; candidateTrack < kAllTracks; ++candidateTrack)
             {
                 if (candidatePattern == patternIdx && candidateTrack == trackIdx)
                     continue;
-                const char* existingLabel = songBlockLabels[(candidatePattern - 1) * kAllTracks + candidateTrack];
+                const char* existingLabel =
+                  songBlockLabels[(candidatePattern - 1) * kAllTracks + candidateTrack];
                 if (memcmp(existingLabel, label, 4) == 0)
                 {
                     patternHasLabel = true;
                     break;
                 }
             }
-            if (!patternHasLabel || checkedPatterns[candidatePattern])
+            if (!patternHasLabel)
                 continue;
-            checkedPatterns[candidatePattern] = true;
+
             snprintf(path, sizeof(path), "Workspace/patterns/pattern_%02d.mtp", candidatePattern);
             if (!readPatternFile(path, &songTrackCopy[1]))
                 continue;
+
             for (uint8_t candidateTrack = 0; candidateTrack < kAllTracks; ++candidateTrack)
             {
                 if (candidatePattern == patternIdx && candidateTrack == trackIdx)
                     continue;
-                const char* existingLabel = songBlockLabels[(candidatePattern - 1) * kAllTracks + candidateTrack];
+                const char* existingLabel =
+                  songBlockLabels[(candidatePattern - 1) * kAllTracks + candidateTrack];
                 if (memcmp(existingLabel, label, 4) != 0)
                     continue;
+
                 const auto& existingTrack = songTrackCopy[1].track[candidateTrack];
                 if (!trackHasData(existingTrack) || !tracksMatch(existingTrack, referenceTrack))
                     return false;

@@ -26,11 +26,6 @@ static void hostSetOutputSamples(uint32_t samples)
     sampleEditorModular.setOutputSamples(samples);
 }
 
-static void hostSetInputOffset(uint32_t offset)
-{
-    sampleEditorModular.setInputOffset(offset);
-}
-
 // Host API Function Pointer Table
 static const PtfxHostApi s_ptfxHostApi = {
     .sample_rate       = 44100,
@@ -52,7 +47,6 @@ static const PtfxHostApi s_ptfxHostApi = {
     .set_extra_samples = hostSetExtraSamples,
     .get_input_samples = hostGetInputSamples,
     .set_output_samples = hostSetOutputSamples,
-    .set_input_offset = hostSetInputOffset,
 };
 
 static FileSystem* getFileSystem()

@@ -19,6 +19,7 @@ void mtEffectModular::configurePlugin(const PtfxHeader& hdr,
                                      PtfxProcessBlockFunc processBlockFunc)
 {
     m_flags            = hdr.flags;
+    m_variableLength   = (hdr.flags & PTFX_FLAG_VARIABLE_LENGTH) != 0;
     m_targetLength     = 88200;
     m_prependSamples   = 0;
     m_appendSamples    = 0;

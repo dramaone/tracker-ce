@@ -34,7 +34,7 @@ static const PtfxHostApi s_ptfxHostApi = {
     .memcpy            = ::memcpy,
     .memset            = ::memset,
     .rand              = ::rand,
-    .set_extra_samples = hostSetExtraSamples,
+    .set_extra_samples = hostSetExtraSamples,\n    .get_input_samples = hostGetInputSamples,\n    .set_output_samples = hostSetOutputSamples,\n    .set_input_offset = hostSetInputOffset,
 };
 
 static FileSystem* getFileSystem()

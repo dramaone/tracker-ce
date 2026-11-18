@@ -112,7 +112,6 @@ bool mtEffectModular::startProcess()
     m_prependSamples = 0;
     m_appendSamples  = 0;
     m_requestedOutputSamples = 0;
-    m_inputOffset = 0;
 
     if (m_initFunc)
         m_initFunc(m_scratchMem, m_scratchSize, m_hostApi);

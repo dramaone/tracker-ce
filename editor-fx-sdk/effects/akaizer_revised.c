@@ -3,12 +3,12 @@
 // PTFX_FLAGS: EFFECT, STEREO, VARIABLE_LENGTH
 // PTFX_SCRATCH: 0
 //
-// DRAMA1 independent cyclic-grain implementation inspired by the published
-// Akai-style time-stretch technique. This is not copied from Akaizer/OpenKaizer.
+// Independent DRAMA1 cyclic-grain implementation based on published
+// Akai-style cyclic time-stretch principles. No Akaizer/OpenKaizer source
+// code is incorporated.
 //
-// REVISED-style timing: fixed output length derived from Time Factor, with
-// two overlapping, linearly crossfaded read heads. Pitch changes the read
-// speed inside each grain while grain placement compensates for it.
+// Two overlapping read heads provide a stable 60/40 cyclic crossfade.
+// Time Factor controls rendered duration; Transpose controls pitch.
 
 #include "tracker_plugin.h"
 
@@ -25,14 +25,13 @@ static float s_cycle = 1000.0f;
 static uint32_t s_input_length = 0;
 static uint32_t s_output_length = 0;
 
-// Two cyclic read heads. Positions are absolute sample positions within the
-// selected source region; the input base pointer remains stable for all blocks.
 static float s_grain_start[2];
 static float s_phase[2];
 static uint8_t s_active;
 static float s_grain_size;
 static float s_grain_hop;
-static float s_crossfade_end;
+static float s_grain_trigger;
+static float s_crossfade_length;
 
 static float clampf(float x, float lo, float hi)
 {
@@ -44,12 +43,13 @@ static float clampf(float x, float lo, float hi)
 static float read_linear(const int16_t* src, uint32_t length, float pos)
 {
     if (!src || length == 0) return 0.0f;
-    if (pos <= 0.0) return (float)src[0] * (1.0f / 32768.0f);
+    if (pos <= 0.0f)
+        return (float)src[0] * (1.0f / 32768.0f);
     if (pos >= (float)(length - 1))
         return (float)src[length - 1] * (1.0f / 32768.0f);
 
     uint32_t i0 = (uint32_t)pos;
-    float frac = (float)(pos - (float)i0);
+    float frac = pos - (float)i0;
     float a = (float)src[i0] * (1.0f / 32768.0f);
     float b = (float)src[i0 + 1] * (1.0f / 32768.0f);
     return a + (b - a) * frac;
@@ -68,30 +68,33 @@ static void update_output_length(void)
     }
 
     float out = (float)s_input_length * s_time_factor;
-    if (out < 1.0) out = 1.0;
-    if (out > 2147483000.0) out = 2147483000.0;
-    s_output_length = (uint32_t)(out + 0.5);
+    if (out < 1.0f) out = 1.0f;
+    s_output_length = (uint32_t)(out + 0.5f);
     s_host->set_output_samples(s_output_length);
 }
 
 static void reset_grains(void)
 {
     s_grain_size = clampf(s_cycle, 20.0f, 2000.0f);
-    if (s_input_length > 4 && s_grain_size > (double)s_input_length)
-        s_grain_size = (double)s_input_length;
-    if (s_grain_size < 4.0) s_grain_size = 4.0;
+    if (s_input_length > 0 && s_grain_size > (float)s_input_length)
+        s_grain_size = (float)s_input_length;
+    if (s_grain_size < 4.0f) s_grain_size = 4.0f;
 
-    // 60% hop / 40% overlap. Compensate for both stretch and pitch so
-    // changing transpose does not change the requested rendered duration.
-    s_grain_hop = (s_grain_size * 0.60) /
-                  ((s_time_factor * (s_pitch_ratio);
-    if (s_grain_hop < 1.0) s_grain_hop = 1.0;
-    s_crossfade_end = s_grain_size * 0.60;
+    // Grain starts advance by 60% of the cycle, compensated for stretch
+    // and transpose. The overlap is the remaining 40%.
+    float divisor = s_time_factor * s_pitch_ratio;
+    if (divisor < 0.0001f) divisor = 0.0001f;
+    s_grain_hop = (s_grain_size * 0.60f) / divisor;
+    if (s_grain_hop < 1.0f) s_grain_hop = 1.0f;
 
-    s_grain_start[0] = 0.0;
-    s_grain_start[1] = s_grain_hop;
-    s_phase[0] = 0.0;
-    s_phase[1] = -1.0;
+    s_grain_trigger = s_grain_size * 0.60f;
+    s_crossfade_length = s_grain_size * 0.40f;
+    if (s_crossfade_length < 1.0f) s_crossfade_length = 1.0f;
+
+    s_grain_start[0] = 0.0f;
+    s_grain_start[1] = 0.0f;
+    s_phase[0] = 0.0f;
+    s_phase[1] = -1.0f;
     s_active = 0;
 }
 
@@ -137,22 +140,14 @@ int32_t plugin_process_block(const int16_t** in, int16_t** out,
 
     uint8_t ch_count = channels > 2 ? 2 : channels;
     for (uint32_t i = 0; i < samples; ++i) {
-        // The active grain advances at the requested pitch. Its next partner
-        // begins at a compensated source offset to preserve the time factor.
         uint8_t a = s_active;
         uint8_t b = (uint8_t)(1 - a);
-
-        if (s_phase[a] < 0.0f) {
-            s_phase[a] = 0.0f;
-            s_grain_start[a] = s_grain_start[b] + s_grain_hop;
-        }
 
         float phase_a = s_phase[a];
         float phase_b = s_phase[b];
         float mix = 0.0f;
-        if (phase_b >= 0.0f) {
-            mix = clampf(phase_b / s_crossfade_end, 0.0f, 1.0f);
-        }
+        if (phase_b >= 0.0f)
+            mix = clampf(phase_b / s_crossfade_length, 0.0f, 1.0f);
 
         float pos_a = s_grain_start[a] + phase_a;
         float pos_b = (phase_b >= 0.0f)
@@ -163,28 +158,25 @@ int32_t plugin_process_block(const int16_t** in, int16_t** out,
             const int16_t* src = in[ch] ? in[ch] : in[0];
             float va = read_linear(src, s_input_length, pos_a);
             float vb = read_linear(src, s_input_length, pos_b);
-            float y = (phase_b >= 0.0)
+            float y = (phase_b >= 0.0f)
                         ? (va * (1.0f - mix) + vb * mix) : va;
             int32_t pcm = (int32_t)(y * 32767.0f);
             out[ch][i] = (int16_t)SATURATE_16BIT(pcm);
         }
 
         s_phase[a] += s_pitch_ratio;
-        if (s_phase[b] >= 0.0ff)
+        if (s_phase[b] >= 0.0f)
             s_phase[b] += s_pitch_ratio;
 
-        // Start the partner grain when the current grain reaches its hop point.
-        if (s_phase[a] >= s_crossfade_end && s_phase[b] < 0.0ff) {
+        // Begin the next grain when the active head reaches its 60% point.
+        if (s_phase[a] >= s_grain_trigger && s_phase[b] < 0.0f) {
             s_grain_start[b] = s_grain_start[a] + s_grain_hop;
             s_phase[b] = 0.0f;
         }
-        // Once the new grain has completed its crossfade, promote it and
-        // schedule the following grain. Timing remains independent of pitch.
-        else if (s_phase[b] >= s_crossfade_end) {
+        // Promote the new head after its 40% crossfade has completed.
+        else if (s_phase[b] >= s_crossfade_length) {
             s_active = b;
-            uint8_t next = a;
-            s_grain_start[next] = s_grain_start[b] + s_grain_hop;
-            s_phase[next] = -1.0f;
+            s_phase[a] = -1.0f;
         }
     }
 

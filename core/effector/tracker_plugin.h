@@ -17,7 +17,8 @@ typedef enum {
     PTFX_FLAG_STEREO          = 0x0002, // Supports dual-channel processing (Tracker Mini/+)
     PTFX_FLAG_WAVETABLE       = 0x0004, // Specialized Polyend Tracker wavetable generator
     PTFX_FLAG_CONVERT_TO_MONO = 0x0008, // Converts stereo instrument to true mono (reclaims 50% RAM)
-    PTFX_FLAG_IMX_ONLY        = 0x0010  // Code > 32 KB or requires Cortex-M7 / stereo
+    PTFX_FLAG_IMX_ONLY        = 0x0010, // Code > 32 KB or requires Cortex-M7 / stereo
+    PTFX_FLAG_VARIABLE_LENGTH = 0x0020  // Plugin controls output length; input is stable across blocks
 } PtfxFlags;
 
 typedef enum {

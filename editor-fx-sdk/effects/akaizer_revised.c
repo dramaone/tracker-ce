@@ -27,12 +27,12 @@ static uint32_t s_output_length = 0;
 
 // Two cyclic read heads. Positions are absolute sample positions within the
 // selected source region; the input base pointer remains stable for all blocks.
-static double s_grain_start[2];
-static double s_phase[2];
+static float s_grain_start[2];
+static float s_phase[2];
 static uint8_t s_active;
-static double s_grain_size;
-static double s_grain_hop;
-static double s_crossfade_end;
+static float s_grain_size;
+static float s_grain_hop;
+static float s_crossfade_end;
 
 static float clampf(float x, float lo, float hi)
 {
@@ -41,15 +41,15 @@ static float clampf(float x, float lo, float hi)
     return x;
 }
 
-static float read_linear(const int16_t* src, uint32_t length, double pos)
+static float read_linear(const int16_t* src, uint32_t length, float pos)
 {
     if (!src || length == 0) return 0.0f;
     if (pos <= 0.0) return (float)src[0] * (1.0f / 32768.0f);
-    if (pos >= (double)(length - 1))
+    if (pos >= (float)(length - 1))
         return (float)src[length - 1] * (1.0f / 32768.0f);
 
     uint32_t i0 = (uint32_t)pos;
-    float frac = (float)(pos - (double)i0);
+    float frac = (float)(pos - (float)i0);
     float a = (float)src[i0] * (1.0f / 32768.0f);
     float b = (float)src[i0 + 1] * (1.0f / 32768.0f);
     return a + (b - a) * frac;
@@ -67,7 +67,7 @@ static void update_output_length(void)
         return;
     }
 
-    double out = (double)s_input_length * (double)s_time_factor;
+    float out = (float)s_input_length * s_time_factor;
     if (out < 1.0) out = 1.0;
     if (out > 2147483000.0) out = 2147483000.0;
     s_output_length = (uint32_t)(out + 0.5);
@@ -84,7 +84,7 @@ static void reset_grains(void)
     // 60% hop / 40% overlap. Compensate for both stretch and pitch so
     // changing transpose does not change the requested rendered duration.
     s_grain_hop = (s_grain_size * 0.60) /
-                  ((double)s_time_factor * (double)s_pitch_ratio);
+                  ((s_time_factor * (s_pitch_ratio);
     if (s_grain_hop < 1.0) s_grain_hop = 1.0;
     s_crossfade_end = s_grain_size * 0.60;
 
@@ -142,22 +142,21 @@ int32_t plugin_process_block(const int16_t** in, int16_t** out,
         uint8_t a = s_active;
         uint8_t b = (uint8_t)(1 - a);
 
-        if (s_phase[a] < 0.0) {
-            s_phase[a] = 0.0;
+        if (s_phase[a] < 0.0f) {
+            s_phase[a] = 0.0f;
             s_grain_start[a] = s_grain_start[b] + s_grain_hop;
         }
 
-        double phase_a = s_phase[a];
-        double phase_b = s_phase[b];
+        float phase_a = s_phase[a];
+        float phase_b = s_phase[b];
         float mix = 0.0f;
-        if (phase_b >= 0.0 && phase_a < s_crossfade_end) {
-            mix = (float)(phase_a / s_crossfade_end);
-            mix = clampf(mix, 0.0f, 1.0f);
+        if (phase_b >= 0.0f) {
+            mix = clampf(phase_b / s_crossfade_end, 0.0f, 1.0f);
         }
 
-        double pos_a = s_grain_start[a] + phase_a;
-        double pos_b = (phase_b >= 0.0)
-                         ? s_grain_start[b] + phase_b : pos_a;
+        float pos_a = s_grain_start[a] + phase_a;
+        float pos_b = (phase_b >= 0.0f)
+                        ? s_grain_start[b] + phase_b : pos_a;
 
         for (uint8_t ch = 0; ch < ch_count; ++ch) {
             if (!out[ch]) continue;
@@ -170,18 +169,22 @@ int32_t plugin_process_block(const int16_t** in, int16_t** out,
             out[ch][i] = (int16_t)SATURATE_16BIT(pcm);
         }
 
-        s_phase[a] += (double)s_pitch_ratio;
-        if (s_phase[b] >= 0.0)
-            s_phase[b] += (double)s_pitch_ratio;
+        s_phase[a] += s_pitch_ratio;
+        if (s_phase[b] >= 0.0ff)
+            s_phase[b] += s_pitch_ratio;
 
-        // When the active grain reaches its overlap point, switch heads and
-        // initialise the next grain at the compensated cyclic source offset.
-        if (s_phase[a] >= s_crossfade_end) {
+        // Start the partner grain when the current grain reaches its hop point.
+        if (s_phase[a] >= s_crossfade_end && s_phase[b] < 0.0ff) {
+            s_grain_start[b] = s_grain_start[a] + s_grain_hop;
+            s_phase[b] = 0.0f;
+        }
+        // Once the new grain has completed its crossfade, promote it and
+        // schedule the following grain. Timing remains independent of pitch.
+        else if (s_phase[b] >= s_crossfade_end) {
             s_active = b;
             uint8_t next = a;
             s_grain_start[next] = s_grain_start[b] + s_grain_hop;
-            s_phase[next] = 0.0;
-            s_phase[b] = 0.0;
+            s_phase[next] = -1.0f;
         }
     }
 

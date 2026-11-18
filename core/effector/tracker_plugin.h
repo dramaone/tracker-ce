@@ -86,7 +86,7 @@ typedef struct {
     void* (*memset)(void*, int, size_t);
     int   (*rand)(void);
     // Optional Sample Length Extension (prepend / append samples to selection)
-    void  (*set_extra_samples)(uint32_t prepend_samples, uint32_t append_samples);
+    void  (*set_extra_samples)(uint32_t prepend_samples, uint32_t append_samples);\n    // Optional variable-length sample processing callbacks (append-only ABI extension).\n    uint32_t (*get_input_samples)(void);\n    void (*set_output_samples)(uint32_t output_samples);\n    void (*set_input_offset)(uint32_t input_offset);
 } PtfxHostApi;
 
 // Plugin Function Pointer Types

@@ -25,7 +25,6 @@ void mtEffectModular::configurePlugin(const PtfxHeader& hdr,
     m_appendSamples    = 0;
     m_inputLength      = 0;
     m_requestedOutputSamples = 0;
-    m_inputOffset = 0;
     m_scratchMem       = scratchMem;
     m_scratchSize      = (hdr.scratch_size <= maxScratchSize) ? hdr.scratch_size : maxScratchSize;
     m_hostApi          = hostApi;
@@ -181,7 +180,7 @@ int32_t mtEffectModular::processBlock()
             uint32_t toAppend = bodyEnd - m_processedSamples;
             if (blockSize > toAppend)
                 blockSize = toAppend;
-            uint32_t inOffset = m_inputOffset;
+            uint32_t inOffset = m_processedSamples - bodyStart;
             for (int ch = 0; ch < kChannels; ch++)
             {
                 const int16_t* base = (confirmed[ch].selection.addr != nullptr)

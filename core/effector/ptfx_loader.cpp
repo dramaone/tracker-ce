@@ -16,6 +16,16 @@ static void hostSetExtraSamples(uint32_t prependSamples, uint32_t appendSamples)
     sampleEditorModular.setExtraSamples(prependSamples, appendSamples);
 }
 
+static uint32_t hostGetInputSamples()
+{
+    return sampleEditorModular.getInputSamples();
+}
+
+static void hostSetOutputSamples(uint32_t samples)
+{
+    sampleEditorModular.setOutputSamples(samples);
+}
+
 // Host API Function Pointer Table
 static const PtfxHostApi s_ptfxHostApi = {
     .sample_rate       = 44100,
@@ -35,6 +45,8 @@ static const PtfxHostApi s_ptfxHostApi = {
     .memset            = ::memset,
     .rand              = ::rand,
     .set_extra_samples = hostSetExtraSamples,
+    .get_input_samples = hostGetInputSamples,
+    .set_output_samples = hostSetOutputSamples,
 };
 
 static FileSystem* getFileSystem()

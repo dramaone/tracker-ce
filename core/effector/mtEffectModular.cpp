@@ -19,10 +19,12 @@ void mtEffectModular::configurePlugin(const PtfxHeader& hdr,
                                      PtfxProcessBlockFunc processBlockFunc)
 {
     m_flags            = hdr.flags;
+    m_variableLength   = (hdr.flags & PTFX_FLAG_VARIABLE_LENGTH) != 0;
     m_targetLength     = 88200;
     m_prependSamples   = 0;
     m_appendSamples    = 0;
     m_inputLength      = 0;
+    m_requestedOutputSamples = 0;
     m_scratchMem       = scratchMem;
     m_scratchSize      = (hdr.scratch_size <= maxScratchSize) ? hdr.scratch_size : maxScratchSize;
     m_hostApi          = hostApi;
@@ -68,6 +70,8 @@ void mtEffectModular::configurePlugin(const PtfxHeader& hdr,
             m_paramValues[i] = hdr.params[i].default_val;
         else
             m_paramValues[i] = 0.0f;
+        if (m_setParamFunc)
+            m_setParamFunc(i, m_paramValues[i]);
     }
 }
 
@@ -86,7 +90,8 @@ uint32_t mtEffectModular::getExpectedProcessLength()
     bool isGenerator = (m_flags & PTFX_FLAG_GENERATOR) != 0;
     if (isGenerator)
         return (m_targetLength > 0) ? m_targetLength : 44100;
-    return confirmed[0].selection.length + m_prependSamples + m_appendSamples;
+    return (m_requestedOutputSamples > 0) ? m_requestedOutputSamples :
+           confirmed[0].selection.length + m_prependSamples + m_appendSamples;
 }
 
 bool mtEffectModular::startProcess()
@@ -106,6 +111,7 @@ bool mtEffectModular::startProcess()
 
     m_prependSamples = 0;
     m_appendSamples  = 0;
+    m_requestedOutputSamples = 0;
 
     if (m_initFunc)
         m_initFunc(m_scratchMem, m_scratchSize, m_hostApi);
@@ -148,7 +154,16 @@ int32_t mtEffectModular::processBlock()
 
     const int16_t* inPtrs[kChannels] = { nullptr };
 
-    if (!isGenerator)
+    if (!isGenerator && m_variableLength)
+    {
+        // Variable-length processors always receive the stable source selection base.
+        for (int ch = 0; ch < kChannels; ch++)
+        {
+            inPtrs[ch] = (confirmed[ch].selection.addr != nullptr)
+                           ? confirmed[ch].selection.addr : confirmed[0].selection.addr;
+        }
+    }
+    else if (!isGenerator)
     {
         uint32_t bodyStart = m_prependSamples;
         uint32_t bodyEnd   = m_prependSamples + m_inputLength;

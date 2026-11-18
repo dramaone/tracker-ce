@@ -16,6 +16,21 @@ static void hostSetExtraSamples(uint32_t prependSamples, uint32_t appendSamples)
     sampleEditorModular.setExtraSamples(prependSamples, appendSamples);
 }
 
+static uint32_t hostGetInputSamples()
+{
+    return sampleEditorModular.getInputSamples();
+}
+
+static void hostSetOutputSamples(uint32_t samples)
+{
+    sampleEditorModular.setOutputSamples(samples);
+}
+
+static void hostSetInputOffset(uint32_t offset)
+{
+    sampleEditorModular.setInputOffset(offset);
+}
+
 // Host API Function Pointer Table
 static const PtfxHostApi s_ptfxHostApi = {
     .sample_rate       = 44100,

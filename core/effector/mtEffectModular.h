@@ -47,6 +47,7 @@ class mtEffectModular : public mtEffect
     uint32_t m_length = 0;
     uint32_t m_processedSamples = 0;
     uint32_t m_requestedOutputSamples = 0;
+    bool m_variableLength = false;
     uint32_t m_inputOffset = 0;
     bool     m_state = false;
     float    m_paramValues[12] = { 0.0f };

@@ -33,7 +33,10 @@ class mtEffectModular : public mtEffect
         m_prependSamples = prependSamples;
         m_appendSamples  = appendSamples;
     }
-    void setLoadedData(bool loaded) { processing.isLoadedData = loaded; }\n    uint32_t getInputSamples() const { return confirmed[0].selection.length; }\n    void setOutputSamples(uint32_t samples) { m_requestedOutputSamples = samples; }\n    void setInputOffset(uint32_t offset) { m_inputOffset = offset; }
+    void setLoadedData(bool loaded) { processing.isLoadedData = loaded; }
+    uint32_t getInputSamples() const { return confirmed[0].selection.length; }
+    void setOutputSamples(uint32_t samples) { m_requestedOutputSamples = samples; }
+    void setInputOffset(uint32_t offset) { m_inputOffset = offset; }
 
   private:
     uint16_t m_flags = 0;
@@ -42,7 +45,9 @@ class mtEffectModular : public mtEffect
     uint32_t m_appendSamples = 0;
     uint32_t m_inputLength = 0;
     uint32_t m_length = 0;
-    uint32_t m_processedSamples = 0;\n    uint32_t m_requestedOutputSamples = 0;\n    uint32_t m_inputOffset = 0;
+    uint32_t m_processedSamples = 0;
+    uint32_t m_requestedOutputSamples = 0;
+    uint32_t m_inputOffset = 0;
     bool     m_state = false;
     float    m_paramValues[12] = { 0.0f };
     const int16_t* m_srcAddr[kChannels] = { nullptr };

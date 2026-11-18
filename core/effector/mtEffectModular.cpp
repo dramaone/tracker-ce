@@ -86,7 +86,7 @@ uint32_t mtEffectModular::getExpectedProcessLength()
     bool isGenerator = (m_flags & PTFX_FLAG_GENERATOR) != 0;
     if (isGenerator)
         return (m_targetLength > 0) ? m_targetLength : 44100;
-    return confirmed[0].selection.length + m_prependSamples + m_appendSamples;
+    return (m_requestedOutputSamples > 0) ? m_requestedOutputSamples :\n           confirmed[0].selection.length + m_prependSamples + m_appendSamples;
 }
 
 bool mtEffectModular::startProcess()
@@ -164,7 +164,7 @@ int32_t mtEffectModular::processBlock()
             uint32_t toAppend = bodyEnd - m_processedSamples;
             if (blockSize > toAppend)
                 blockSize = toAppend;
-            uint32_t inOffset = m_processedSamples - bodyStart;
+            uint32_t inOffset = m_inputOffset;
             for (int ch = 0; ch < kChannels; ch++)
             {
                 const int16_t* base = (confirmed[ch].selection.addr != nullptr)
